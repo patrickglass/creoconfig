@@ -13,5 +13,8 @@ class Config(object):
         self.cache_file = cache_file
 
     def sync(self):
-        pass
+        return True
 
+    def add_option(self, name, help=None, dest=None,
+                   type=None, choices=None, default=None):
+        pass
