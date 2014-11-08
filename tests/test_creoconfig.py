@@ -60,6 +60,31 @@ class TestCaseConfig(unittest.TestCase):
             type=str,
             choices=['a', 'b', 'c', '10'])
 
+    def test_attr_set_get(self):
+        c = Config()
+        c.mykey = 'myvalue'
+        self.assertEqual(c.mykey, 'myvalue')
+        c['mykey'] = 'myvalue2'
+        self.assertEqual(c.mykey, 'myvalue2')
+        c.mykey = 1234
+        self.assertEqual(c['mykey'], 1234)
+
+    def test_attr_missing(self):
+        c = Config()
+        self.assertRaises(AttributeError, getattr, c, 'mykey')
+        self.assertRaises(AttributeError, c, 'mykey')
+        self.assertRaises(KeyError, lambda: c['mykey'])
+
+    def test_attr_del(self):
+        c = Config()
+        c.mykey = 'myvalue'
+        self.assertEqual(c.mykey, 'myvalue')
+        c._delete('mykey')
+        # Second delete on non-existing key raises exception
+        self.assertRaises(KeyError, c._delete, 'mykey')
+        self.assertRaises(AttributeError, getattr, c, 'mykey')
+        self.assertRaises(KeyError, lambda: c['mykey'])
+
     def test_sync_ok(self):
         c = Config()
         self.assertTrue(c.sync())
