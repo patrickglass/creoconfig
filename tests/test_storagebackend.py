@@ -99,14 +99,13 @@ class TestCaseFileStorageBackend(unittest.TestCase):
     def tearDown(self):
         self.s.close()
         del self.s
-        os.remove(self.filename)
 
 
+# @unittest.skip("Redis Backend Requires Server")
 class TestCaseRedisStorageBackend(unittest.TestCase):
 
     def setUp(self):
-        self.s = RedisStorageBackend(host='bby1metrics06',
-                                     password='mUFr2xospmw11LfRBdLH')
+        self.s = RedisStorageBackend()
 
     def test_set(self):
         self.assertTrue(self.s.set('mykey', 'myval'))
