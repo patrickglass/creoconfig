@@ -36,7 +36,7 @@ class BaseConfigField(object):
     def validators(self):
         # Some validators can't be created at field initialization time.
         # This method provides a way to delay their creation until required.
-        return self.default_validators + self._validators
+        return self.default_validators + self.validators
 
     def run_validators(self, value):
         if value in self.empty_values:
@@ -63,38 +63,55 @@ class BaseConfigField(object):
     def __hash__(self):
         return hash(self.name)
 
+class ClassValidator(object):
+    def __init__(self, cls):
+        """Checks whether the value is of the same class"""
+        self.cls = cls
+
+    def check(self, value):
+        if type(value) is not self.cls:
+            raise exceptions.ValidationError("%s does not match required type %s" % (type(value), self.cls))
+        return True
+
 
 class StringField(BaseConfigField):
+    default_validators = [ClassValidator(str)]
     def __init__(self, *args, **kwargs):
         return super(StringField, self).__init__(*args, **kwargs)
 
 
 class IntegerField(BaseConfigField):
+    default_validators = [ClassValidator(int)]
     def __init__(self, *args, **kwargs):
         return super(IntegerField, self).__init__(*args, **kwargs)
 
 
 class FloatField(BaseConfigField):
+    default_validators = [ClassValidator(float)]
     def __init__(self, *args, **kwargs):
         return super(FloatField, self).__init__(*args, **kwargs)
 
 
 class RegexField(BaseConfigField):
+    default_validators = [ClassValidator(str)]
     def __init__(self, *args, **kwargs):
         return super(RegexField, self).__init__(*args, **kwargs)
 
 
 class FileField(BaseConfigField):
+    default_validators = [ClassValidator(str)]
     def __init__(self, *args, **kwargs):
         return super(FileField, self).__init__(*args, **kwargs)
 
 
 class DirectoryField(BaseConfigField):
+    default_validators = [ClassValidator(str)]
     def __init__(self, *args, **kwargs):
         return super(DirectoryField, self).__init__(*args, **kwargs)
 
 
 class FileField(BaseConfigField):
+    default_validators = [ClassValidator(str)]
     def __init__(self, *args, **kwargs):
         return super(FileField, self).__init__(*args, **kwargs)
 
