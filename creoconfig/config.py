@@ -4,6 +4,11 @@ creoconfig
 Allows the central control and management of applications via
 a centralized configuration management system.
 """
+try:
+    """ReadLine will enhance the raw_input and allow history"""
+    import readline
+except ImportError:
+    pass
 import attrdict
 from exceptions import BatchModeUnableToPromt, TooManyRetries
 
@@ -35,7 +40,6 @@ class Config(attrdict.AttrDict):
                 if self._batchmode:
                     raise BatchModeUnableToPromt("%s not found. Please exit batchmode to start wizard or set this variable manually." % k.name)
                 val = k.prompt()
-                print("INFO: Prompt returned: %s" % str(val))
                 self[k.name] = val
         return True
 
@@ -73,11 +77,19 @@ class ConfigObject(object):
             self._pfx += " [%s]" % ', '.join(self.choices)
 
         if self.default:
-            self._pfx += " (%s): " % str(self.default)
+            self._pfx += " (%s)" % str(self.default)
+
+        self._pfx += ': '
 
         while True:
             val = prompt_user(self._pfx)
-            self.retries -= 1
+
+            # At the prompt entering '?' will print the help
+            # for the item if available.
+            if self.help and val == '?':
+                print("Help for %s:\n\t%s" % (self.name, self.help))
+            else:
+                self.retries -= 1
 
             # If the users did not enter a value in use the default
             if self.default and val == '':
@@ -87,7 +99,6 @@ class ConfigObject(object):
             if self.choices and val not in self.choices:
                 if self.retries < 0:
                     raise TooManyRetries("You can only select an option from the specified list! Exiting...")
-                    return None
                 else:
                     print("You have selected an invalid answer! Please try again.")
                     continue
