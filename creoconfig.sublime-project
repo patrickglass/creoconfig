@@ -1,0 +1,23 @@
+{
+	"folders":
+	[
+		{
+			"follow_symlinks": true,
+			"path": "."
+		}
+	],
+	"settings":
+	{
+		"caret_style": "wide",
+		"default_line_ending": "unix",
+		"ensure_newline_at_eof_on_save": true,
+		"line_numbers": true,
+		"rulers":
+		[
+			79
+		],
+		"tab_size": 4,
+		"trim_trailing_white_space_on_save": true,
+		"word_wrap": true
+	}
+}

@@ -99,6 +99,10 @@ class TestCaseFileStorageBackend(unittest.TestCase):
     def tearDown(self):
         self.s.close()
         del self.s
+        try:
+            os.remove(self.filename + '.os')
+        except:
+            pass
 
 
 # @unittest.skip("Redis Backend Requires Server")

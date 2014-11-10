@@ -34,37 +34,49 @@ class Config(attrdict.AttrDict):
             if k.name not in self:
                 if self._batchmode:
                     raise BatchModeUnableToPromt("%s not found. Please exit batchmode to start wizard or set this variable manually." % k.name)
-                k.prompt()
+                val = k.prompt()
+                print("INFO: Prompt returned: %s" % str(val))
+                self[k.name] = val
+        return True
 
+
+def prompt_user(*args, **kwargs):
+    """
+    Read a string from standard input.  The trailing newline is stripped.
+    If the user hits EOF (Unix: Ctl-D, Windows: Ctl-Z+Return), raise EOFError.
+    On Unix, GNU readline is used if enabled.  The prompt string, if given,
+    is printed without a trailing newline before reading.
+    """
+    return raw_input(*args, **kwargs)
 
 class ConfigObject(object):
     """
     Stores all the information about a variable. This is used to
     create a useful interactive prompt for the user to enter in the value.
     """
-    def __init__(self, name, prefix=None, help=None, dest=None,
-                   type=None, choices=None, default=None, retries=3):
-        self.name = name
+    def __init__(self, name, prefix='', help=None, dest=None,
+                   type=None, choices={}, default=None, retries=3):
+        self.name = str(name)
         self.prefix = prefix
         self.help = help
         self.dest = dest
-        self.type = type
-        self.choices = choices
+        # Not used yet
+        self.type = type or str
+        self.choices = map(str, choices)
         self.default = default
-        self.retries = retries
+        self.retries = int(retries)
 
     def prompt(self):
-
         self._pfx = self.prefix
 
         if self.choices:
             self._pfx += " [%s]" % ', '.join(self.choices)
 
         if self.default:
-            self._pfx += " (%s): " % self.default
+            self._pfx += " (%s): " % str(self.default)
 
         while True:
-            val = raw_input(self._pfx)
+            val = prompt_user(self._pfx)
             self.retries -= 1
 
             # If the users did not enter a value in use the default
@@ -79,5 +91,9 @@ class ConfigObject(object):
                 else:
                     print("You have selected an invalid answer! Please try again.")
                     continue
-            return val
+
+            try:
+                return self.type(val)
+            except ValueError:
+                return val
 
