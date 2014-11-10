@@ -1,12 +1,17 @@
 """
 creoconfig
 """
-from config import Config
 import exceptions
-import fields
+from config import Config
+from storagebackend import (
+    MemStorageBackend,
+    FileStorageBackend,
+    RedisStorageBackend
+)
 
 
-__all__ = ['creoconfig', 'exceptions', 'fields']
+
+__all__ = ['creoconfig', 'exceptions', 'storagebackend']
 
 __title__ = 'creoconfig'
 __version__ = '0.1.0'
