@@ -7,43 +7,7 @@ UnitTest framework for validating CreoConfig
 import unittest
 from creoconfig import Config
 from creoconfig.exceptions import *
-from creoconfig.fields import *
 
-
-
-# class TestCaseBasicInit(unittest.TestCase):
-
-#     def test_no_token(self):
-#         class myConfig(Config):
-#             base_val = StringField()
-#             base_val = StringField()
-
-#         # self.assertEqual(myConfig.server, None)
-#         # self.assertEqual(myConfig.cache_file, None)
-
-
-# class TestCaseStringField(unittest.TestCase):
-
-#     def test_valid_name(self):
-#         """name of field must not be blank"""
-#         self.assertTrue(StringField('testname'))
-
-#     def test_invalid_name(self):
-#         self.assertRaises(InvalidFieldName, StringField, '')
-#         self.assertRaises(ConfigException, StringField, '')
-
-#     def test_invalid_default(self):
-#         """We have selected a default value that is not a valid option"""
-#         self.assertRaises(InvalidFieldName, StringField, 'testname', 'e', ['a', 'b', 'c'])
-#         self.assertRaises(ConfigException, StringField, 'testname', 'e', ['a', 'b', 'c'])
-
-#     def test_complete_init(self):
-#         f = StringField('testname', 'defval', ['a', 'b', 'c'], help_text="myhelp")
-#         self.assertEqual(f.name, 'testname')
-#         self.assertEqual(f.default, 'defval')
-#         self.assertEqual(f.choices, ['a', 'b', 'c'])
-#         self.assertEqual(f.validators, [])
-#         self.assertEqual(f.help_text, "myhelp")
 
 class TestCaseConfig(unittest.TestCase):
 
@@ -100,7 +64,7 @@ class TestWizardPrompt(unittest.TestCase):
         c.prompt()
 
     @patch('creoconfig.config.prompt_user', return_value=123)
-    def test_prompt_string(self, input):
+    def test_prompt_int(self, input):
         c = Config()
         c.add_option('intkey', help='This is a int key', type=int)
         c.prompt()
@@ -117,7 +81,8 @@ class TestWizardPrompt(unittest.TestCase):
         c.add_option('strkey', help='This is a string key')
         self.assertRaises(BatchModeUnableToPromt, lambda: c.prompt())
         self.assertRaises(BatchModeUnableToPromt, lambda: c.prompt())
-        c.__setattr__('_batchmode', False, force=True)
+        self.assertRaises(KeyError, lambda: c['strkey'])
+        c._meta.batchmode = False
         self.assertTrue(c.prompt())
         self.assertEquals(c.strkey, 'abc')
 
@@ -147,21 +112,18 @@ class TestWizardPrompt(unittest.TestCase):
             type=str,
             choices=['a', 'abcd', 'ab', 'abc'])
         self.assertRaises(KeyError, lambda: c['choice_key'])
-        self.assertTrue(c.prompt)
-        print c.prompt()
+        self.assertTrue(c.prompt())
         self.assertEqual(c.choice_key, 'ab')
 
     @patch('creoconfig.config.prompt_user', return_value='ab')
     def test_prompt_int_type_error(self, input):
         c = Config()
-        c.add_option('choice_key',
+        self.assertRaises(IllegalArgumentError,
+            c.add_option,
+            'choice_key',
             help='This is a int key which only allows certail values',
             type=int,
-            choices=['a', 'abcd', 'ab', 'abc'])
-        self.assertRaises(KeyError, lambda: c['choice_key'])
-        self.assertTrue(c.prompt)
-        print c.prompt()
-        self.assertEqual(c.choice_key, 'ab')
+            choices=[1, 'string', 'a', 'abcd', 'ab', 'abc'])
 
     @patch('creoconfig.config.prompt_user', return_value='2')
     def test_prompt_int_choices_ok(self, input):
@@ -172,8 +134,97 @@ class TestWizardPrompt(unittest.TestCase):
             choices=[1, 2, 3, 10])
         self.assertRaises(KeyError, lambda: c['choice_key'])
         self.assertTrue(c.prompt())
-        print c.prompt()
         self.assertEqual(c.choice_key, 2)
+
+
+class TestConfigOptionDefault(unittest.TestCase):
+
+    def test_default_type_match_int(self):
+        c = Config()
+        self.assertTrue(c.add_option('keyname', type=int, default=234))
+
+    def test_default_type_mismatch_int(self):
+        c = Config()
+        self.assertRaises(IllegalArgumentError, c.add_option, 'keyname', type=int, default='32')
+
+    def test_default_type_mismatch_int2(self):
+        c = Config()
+        self.assertRaises(IllegalArgumentError, c.add_option, 'keyname', type=int, default=354.545)
+
+    def test_default_type_match_float(self):
+        c = Config()
+        self.assertTrue(c.add_option('keyname', type=float, default=0.0))
+
+    def test_default_type_mismatch_float(self):
+        c = Config()
+        self.assertRaises(IllegalArgumentError, c.add_option, 'keyname', type=float, default='354.545')
+
+    def test_default_type_mismatch_float2(self):
+        c = Config()
+        self.assertRaises(IllegalArgumentError, c.add_option, 'keyname', type=float, default=354)
+
+    def test_default_type_match_str(self):
+        c = Config()
+        self.assertTrue(c.add_option('keyname', type=str, default='234'))
+
+    def test_default_type_match_str2(self):
+        c = Config()
+        self.assertTrue(c.add_option('keyname', type=str, default=' spaces everywhere   '))
+
+    def test_default_type_mismatch_str(self):
+        c = Config()
+        self.assertRaises(IllegalArgumentError, c.add_option, 'keyname', type=str, default=354.545)
+
+
+class TestConfigOptionChoices(unittest.TestCase):
+
+    def test_choice_type_match_int(self):
+        c = Config()
+        self.assertTrue(c.add_option('keyname', type=int, choices=[234, 1]))
+
+    def test_choice_type_match_single_int(self):
+        c = Config()
+        self.assertRaises(TypeError, c.add_option, 'keyname', type=int, choices=234)
+
+    def test_choice_type_mismatch_int(self):
+        c = Config()
+        self.assertRaises(IllegalArgumentError, c.add_option, 'keyname', type=int, choices=['32', 'asb'])
+
+    def test_choice_type_mismatch_int2(self):
+        c = Config()
+        self.assertRaises(IllegalArgumentError, c.add_option, 'keyname', type=int, choices=[354.545])
+
+    def test_choice_type_match_float(self):
+        c = Config()
+        self.assertTrue(c.add_option('keyname', type=float, choices=[0.0]))
+
+    def test_choice_type_match_single_float(self):
+        c = Config()
+        self.assertRaises(TypeError, c.add_option, 'keyname', type=float, choices=234.0)
+
+    def test_choice_type_mismatch_float(self):
+        c = Config()
+        self.assertRaises(IllegalArgumentError, c.add_option, 'keyname', type=float, choices=['354.545'])
+
+    def test_choice_type_mismatch_float2(self):
+        c = Config()
+        self.assertRaises(IllegalArgumentError, c.add_option, 'keyname', type=float, choices=[354])
+
+    def test_choice_type_match_single_string(self):
+        c = Config()
+        self.assertRaises(IllegalArgumentError, c.add_option, 'keyname', type=str, choices="BadChoice")
+
+    def test_choice_type_match_str(self):
+        c = Config()
+        self.assertTrue(c.add_option('keyname', type=str, choices=['234']))
+
+    def test_choice_type_match_str2(self):
+        c = Config()
+        self.assertTrue(c.add_option('keyname', type=str, choices=[' spaces everywhere   ']))
+
+    def test_choice_type_mismatch_str(self):
+        c = Config()
+        self.assertRaises(IllegalArgumentError, c.add_option, 'keyname', type=str, choices=[354.545])
 
 
 if __name__ == '__main__':

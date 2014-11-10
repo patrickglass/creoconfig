@@ -7,8 +7,8 @@ class ConfigException(Exception):
     """Base class for all application generated exceptions"""
     pass
 
-class InvalidFieldName(ConfigException):
-    """Base class for all application generated exceptions"""
+class IllegalArgumentError(ConfigException):
+    """Thrown when the arguments passed in need to be fixed."""
     pass
 
 class BatchModeUnableToPromt(ConfigException):
