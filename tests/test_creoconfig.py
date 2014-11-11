@@ -5,6 +5,7 @@ Module test_creoconfig
 UnitTest framework for validating CreoConfig
 """
 import unittest
+from mock import patch
 from creoconfig import Config
 from creoconfig.exceptions import *
 
@@ -34,13 +35,13 @@ class TestCaseConfig(unittest.TestCase):
         self.assertEqual(c['mykey'], 1234)
 
     def test_attr_missing(self):
-        c = Config()
+        c = Config(batch=True)
         self.assertRaises(AttributeError, getattr, c, 'mykey')
         self.assertRaises(AttributeError, c, 'mykey')
         self.assertRaises(KeyError, lambda: c['mykey'])
 
     def test_attr_del(self):
-        c = Config()
+        c = Config(batch=True)
         c.mykey = 'myvalue'
         self.assertEqual(c.mykey, 'myvalue')
         c._delete('mykey')
@@ -55,7 +56,6 @@ class TestCaseConfig(unittest.TestCase):
 
 
 class TestWizardPrompt(unittest.TestCase):
-    from mock import patch
 
     @patch('creoconfig.config.prompt_user', return_value='yes')
     def test_prompt_string(self, input):
@@ -111,7 +111,7 @@ class TestWizardPrompt(unittest.TestCase):
             help='This is a int key which only allows certail values',
             type=str,
             choices=['a', 'abcd', 'ab', 'abc'])
-        self.assertRaises(KeyError, lambda: c['choice_key'])
+        self.assertEqual(c['choice_key'], 'ab')
         self.assertTrue(c.prompt())
         self.assertEqual(c.choice_key, 'ab')
 
@@ -132,8 +132,9 @@ class TestWizardPrompt(unittest.TestCase):
             help='This is a int key which only allows certail values',
             type=int,
             choices=[1, 2, 3, 10])
-        self.assertRaises(KeyError, lambda: c['choice_key'])
-        self.assertTrue(c.prompt())
+        # Since we have autoprompting this is no longer relavant
+        # self.assertRaises(KeyError, lambda: c['choice_key'])
+        # self.assertTrue(c.prompt())
         self.assertEqual(c.choice_key, 2)
 
 
@@ -226,6 +227,52 @@ class TestConfigOptionChoices(unittest.TestCase):
         c = Config()
         self.assertRaises(IllegalArgumentError, c.add_option, 'keyname', type=str, choices=[354.545])
 
+
+class TestConfigOptionAutoPrompt(unittest.TestCase):
+
+    @patch('creoconfig.config.prompt_user', return_value='2')
+    def test_prompt_int_dict_default(self, input):
+        c = Config()
+        c.add_option('choice_key',
+            type=int,
+            default=2)
+        self.assertEqual(c['choice_key'], 2)
+
+    @patch('creoconfig.config.prompt_user', return_value='2')
+    def test_prompt_int_attr_default(self, input):
+        c = Config()
+        c.add_option('choice_key',
+            type=int,
+            default=2)
+        self.assertEqual(c.choice_key, 2)
+
+    @patch('creoconfig.config.prompt_user', return_value='2')
+    def test_prompt_int_dict_no_default(self, input):
+        c = Config()
+        c.add_option('choice_key',
+            type=int)
+        self.assertEqual(c['choice_key'], 2)
+
+    @patch('creoconfig.config.prompt_user', return_value='2')
+    def test_prompt_int_attr_no_default(self, input):
+        c = Config()
+        c.add_option('choice_key',
+            type=int)
+        self.assertEqual(c.choice_key, 2)
+
+    @patch('creoconfig.config.prompt_user', return_value='2')
+    def test_prompt_int_dict_batch_no_default(self, input):
+        c = Config(batch=True)
+        c.add_option('choice_key',
+            type=int)
+        self.assertRaises(KeyError, lambda: c['mykey'])
+
+    @patch('creoconfig.config.prompt_user', return_value='2')
+    def test_prompt_int_attr_batch_no_default(self, input):
+        c = Config(batch=True)
+        c.add_option('choice_key',
+            type=int)
+        self.assertRaises(AttributeError, c, 'mykey')
 
 if __name__ == '__main__':
     print "INFO: Running tests!"

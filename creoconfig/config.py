@@ -30,6 +30,51 @@ class Config(attrdict.AttrDict):
         self._meta.available_keywords = []
         return super(Config, self).__init__(*args, **kwargs)
 
+    def __getitem__(self, key):
+        """get will lookup the key in the current dictionary and return the
+        value. If the key is missing it will check if an 'add_option' has been
+        called with this name. This will allow the add_option to prompt the
+        user or to use the default option if supplied."""
+        try:
+            return super(Config, self).__getitem__(key)
+        except KeyError:
+            return self._auto_prompt(key)
+
+    def __getattr__(self, key):
+        """get will lookup the key in the current dictionary and return the
+        value. If the key is missing it will check if an 'add_option' has been
+        called with this name. This will allow the add_option to prompt the
+        user or to use the default option if supplied."""
+        try:
+            return super(Config, self).__getattr__(key)
+        except AttributeError:
+            # Key was not found so we will check the available options
+            # in batch mode we will just consider options with a default
+            # option
+            return self._auto_prompt(key)
+
+    def _auto_prompt(self, key):
+        """
+        Key was not found so we will check the available options
+        in batch mode we will just consider options with a default option
+        """
+        print "INFO: AttributeError Exception handler"
+        for k in self._meta.available_keywords:
+            if k.name == key:
+                if self._meta.batchmode:
+                    if k.default:
+                        print "INFO: default was set"
+                        val = k.default
+                    else:
+                        # We can't handle anything in batchmode
+                        raise
+                else:
+                    val = k.prompt()
+                self['key'] = val
+                return val
+        # Unable to handle AttributeError, reraise it.
+        raise
+
     def sync(self):
         return True
 
@@ -139,4 +184,5 @@ class ConfigObject(object):
             except ValueError:
                 print("Invalid answer. Could not interpret your response '%s' as %s. Please try again!" % (val, self.returntype))
                 continue
+            return val
 
