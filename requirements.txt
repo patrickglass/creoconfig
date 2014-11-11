@@ -6,6 +6,7 @@
 #   to test creoconfig. This file is meant to be read by 'pip'
 #   % pip install -r requirements.txt
 
+nose
 mock
 unittest2
 readline
