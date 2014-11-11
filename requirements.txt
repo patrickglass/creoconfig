@@ -8,6 +8,5 @@
 
 nose
 mock
-unittest2
-readline
+fakeredis
 redis
