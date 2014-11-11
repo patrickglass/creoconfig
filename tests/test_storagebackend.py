@@ -101,7 +101,10 @@ class TestCaseFileStorageBackend(unittest.TestCase):
         del self.s
         try:
             os.remove(self.filename)
-            # os.remove(self.filename + '.os')
+        except:
+            pass
+        try:
+            os.remove(self.filename + '.db')
         except:
             pass
 
