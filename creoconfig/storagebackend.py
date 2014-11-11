@@ -1,7 +1,8 @@
 """
 StorageBackend
 """
-
+import shelve
+import redis
 
 class StorageBackend(object):
     def set(self, key, value, *args, **kwargs):
@@ -35,7 +36,7 @@ class MemStorageBackend(StorageBackend):
 
 class FileStorageBackend(MemStorageBackend):
     def __init__(self, filename, *args, **kwargs):
-        import shelve
+
         self.dict = shelve.open(filename)
 
     def set(self, key, value, *args, **kwargs):
@@ -60,15 +61,14 @@ class FileStorageBackend(MemStorageBackend):
 
 
 class RedisStorageBackend(StorageBackend):
-    def __init__(self, host='localhost', port=6379, db=0, password=None, *args, **kwargs):
-        import redis
+    def __init__(self, host='localhost', port=6379, db=0, password=None, connection=redis.StrictRedis, *args, **kwargs):
         self.host = host
         self.port = port
         self.db = db
-        self.r = redis.StrictRedis(host=self.host,
-                                   port=self.port,
-                                   db=self.db,
-                                   password=password)
+        self.r = connection(host=self.host,
+                            port=self.port,
+                            db=self.db,
+                            password=password)
 
     def set(self, key, value, *args, **kwargs):
         return self.r.set(key, value)
