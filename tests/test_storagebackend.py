@@ -4,6 +4,7 @@ UnitTest framework for validating StorageBackends
 """
 import os
 import unittest
+import fakeredis
 from creoconfig.storagebackend import *
 
 
@@ -113,7 +114,7 @@ class TestCaseFileStorageBackend(unittest.TestCase):
 class TestCaseRedisStorageBackend(unittest.TestCase):
 
     def setUp(self):
-        self.s = RedisStorageBackend()
+        self.s = RedisStorageBackend(connection=fakeredis.FakeStrictRedis)
 
     def test_set(self):
         self.assertTrue(self.s.set('mykey', 'myval'))
