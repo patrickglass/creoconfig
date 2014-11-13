@@ -6,7 +6,7 @@ UnitTest framework for validating CreoConfig
 """
 import unittest
 from mock import patch
-from creoconfig import Config
+from creoconfig import Config, FileStorageBackend
 from creoconfig.exceptions import *
 
 
@@ -40,19 +40,50 @@ class TestCaseConfig(unittest.TestCase):
         self.assertRaises(AttributeError, c, 'mykey')
         self.assertRaises(KeyError, lambda: c['mykey'])
 
-    def test_attr_del(self):
+    def test_delete_func(self):
         c = Config(batch=True)
         c.mykey = 'myvalue'
         self.assertEqual(c.mykey, 'myvalue')
-        c._delete('mykey')
+        delattr(c, 'mykey')
         # Second delete on non-existing key raises exception
-        self.assertRaises(KeyError, c._delete, 'mykey')
+        self.assertRaises(TypeError, delattr, c, 'mykey')
+        self.assertRaises(AttributeError, getattr, c, 'mykey')
+        self.assertRaises(KeyError, lambda: c['mykey'])
+
+    def test_delete_func2(self):
+        c = Config(batch=True)
+        c.mykey = 'myvalue'
+        self.assertEqual(c.mykey, 'myvalue')
+        del c.mykey
+        # Second delete on non-existing key raises exception
+        self.assertRaises(TypeError, delattr, c, 'mykey')
+        self.assertRaises(AttributeError, getattr, c, 'mykey')
+        self.assertRaises(KeyError, lambda: c['mykey'])
+
+    def test_delete_dict(self):
+        c = Config(batch=True)
+        c.mykey = 'myvalue'
+        self.assertEqual(c.mykey, 'myvalue')
+        del c['mykey']
+        # Second delete on non-existing key raises exception
+        self.assertRaises(TypeError, delattr, c, 'mykey')
+        self.assertRaises(AttributeError, getattr, c, 'mykey')
+        self.assertRaises(KeyError, lambda: c['mykey'])
+
+    def test_delete_attr(self):
+        c = Config(batch=True)
+        c.mykey = 'myvalue'
+        self.assertEqual(c.mykey, 'myvalue')
+        del c.mykey
+        # Second delete on non-existing key raises exception
+        self.assertRaises(TypeError, delattr, c, 'mykey')
         self.assertRaises(AttributeError, getattr, c, 'mykey')
         self.assertRaises(KeyError, lambda: c['mykey'])
 
     def test_sync_ok(self):
+        """Config.sync() should not throw an error"""
         c = Config()
-        self.assertTrue(c.sync())
+        c.sync()
 
 
 class TestWizardPrompt(unittest.TestCase):
@@ -273,6 +304,87 @@ class TestConfigOptionAutoPrompt(unittest.TestCase):
         c.add_option('choice_key',
             type=int)
         self.assertRaises(AttributeError, c, 'mykey')
+
+
+class TestConfigFileBackend(unittest.TestCase):
+
+    def setUp(self):
+        self.filename = 'tmp_TestConfigFileBackend.cfg'
+    #     self.backend = FileStorageBackend(filename=self.filename)
+    #     self.c = Config(batch=True, backend=self.backend)
+
+    # def test_create_mykey(self):
+    #     self.c.mykey = 'myvalue'
+
+    # def test_get_mykey(self):
+    #     self.assertEqual(self.c.mykey, 'myvalue')
+
+    def test_sync_ok(self):
+        """Config.sync() should not throw an exception"""
+        s = FileStorageBackend(self.filename)
+        c = Config(backend=s)
+        c.sync()
+
+    @unittest.skip("Not working since backend does not populate mapping")
+    def test_file_persistance(self):
+        c = Config(backend=FileStorageBackend(self.filename))
+        self.assertRaises(AttributeError, c, 'mykey')
+        c.mykey = 'myvalue'
+        c.anotherkey = 'someothervalue'
+        print c['mykey']
+        print c.__dict__
+        print c._meta.backend.__dict__
+        print c._mapping
+        self.assertEqual(c.mykey, 'myvalue')
+
+        # Now recreate the Config and check if value is taken
+        c = Config(backend=FileStorageBackend(self.filename))
+        self.assertEqual(c.mykey, 'myvalue')
+        # FIXME: Why does this del not work (TypeError: Invalid key: 'mykey')
+        # del c.mykey
+        print c['mykey']
+        print c.__dict__
+        print c._meta.backend.__dict__
+        print c._mapping
+        delattr(c, 'mykey')
+        # del c['mykey']
+        self.assertRaises(AttributeError, getattr, c, 'mykey')
+        self.assertRaises(KeyError, lambda: c['mykey'])
+
+    @unittest.skip("Not working since backend does not populate mapping")
+    def test_file_persistance_with_close(self):
+        c = Config(backend=FileStorageBackend(self.filename))
+        self.assertRaises(AttributeError, c, 'mykey')
+        c.mykey = 'myvalue'
+        self.assertEqual(c.mykey, 'myvalue')
+
+        # Close should be optional, since orphaning original c
+        # should auto close the backend
+        c.close()
+
+        # Now recreate the Config and check if value is taken
+        c = Config(backend=FileStorageBackend(self.filename))
+        self.assertEqual(c.mykey, 'myvalue')
+        # FIXME: Why does this del not work (TypeError: Invalid key: 'mykey')
+        # del c.mykey
+        print c['mykey']
+        del c['mykey']
+        self.assertRaises(AttributeError, getattr, c, 'mykey')
+        self.assertRaises(KeyError, lambda: c['mykey'])
+
+    # def tearDown(self):
+    #     self.backend.close()
+    #     del self.s
+    #     try:
+    #         os.remove(self.filename)
+    #     except:
+    #         pass
+    #     try:
+    #         os.remove(self.filename + '.db')
+    #     except:
+    #         pass
+
+
 
 if __name__ == '__main__':
     print "INFO: Running tests!"
