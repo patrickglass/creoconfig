@@ -91,9 +91,8 @@ class AttrDict(MutableMapping):
         needs to be separated out so that setattr and setitem don't
         clash.
         """
-        self._mapping[key] = value
-
         if self._valid_name(key):
+            self._mapping[key] = value
             super(AttrDict, self).__setattr__(
                 key, self._build(value, recursive=self._recursive))
 
