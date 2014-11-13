@@ -36,8 +36,7 @@ class MemStorageBackend(StorageBackend):
 
 class FileStorageBackend(MemStorageBackend):
     def __init__(self, filename, *args, **kwargs):
-
-        self.dict = shelve.open(filename)
+        self.dict = shelve.open(filename, writeback=True)
 
     def set(self, key, value, *args, **kwargs):
         self.dict[key] = value
@@ -51,10 +50,12 @@ class FileStorageBackend(MemStorageBackend):
             del self.dict[key]
         except KeyError:
             return False
-        return True
 
     def close(self):
         return self.dict.close()
+
+    def sync(self):
+        return self.dict.sync()
 
     def __del__(self):
         self.close()
