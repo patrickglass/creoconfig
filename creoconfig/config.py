@@ -19,9 +19,9 @@ class Config(attrdict.AttrDict):
     """Defined the config variables and their validation methods"""
     def __init__(self, *args, **kwargs):
         # Define an internal structure to hold Config internal settings
-        self.__setattr__('_meta', attrdict.AttrDict(), force=True)
+        super(Config, self).__setattr__('_meta', attrdict.AttrDict(), force=True)
         # Update storagebackends as soon as a value changes
-        self._meta.backends = kwargs.pop('backends', None)
+        self._meta.backend = kwargs.pop('backend', None)
         self._meta.autosync = kwargs.pop('autosync', True)
         self._meta.batchmode = kwargs.pop('batch', False)
         # Store the variables which have a help menu. When one of these
@@ -31,27 +31,99 @@ class Config(attrdict.AttrDict):
         return super(Config, self).__init__(*args, **kwargs)
 
     def __getitem__(self, key):
-        """get will lookup the key in the current dictionary and return the
+        """
+        get will lookup the key in the current dictionary and return the
         value. If the key is missing it will check if an 'add_option' has been
         called with this name. This will allow the add_option to prompt the
-        user or to use the default option if supplied."""
+        user or to use the default option if supplied.
+        """
         try:
             return super(Config, self).__getitem__(key)
         except KeyError:
-            return self._auto_prompt(key)
+            # Key was not found in local dictionary
+            # Check the backend if it is storing the value
+            val = None
+            if self._meta.backend:
+                val = self._meta.backend.get(key)
+            if val:
+                self['key'] = val
+            else:
+                # Key was not found so we will check the available options
+                # in batch mode we will just consider options with a default
+                # option
+                val = self._auto_prompt(key)
+            return val
 
     def __getattr__(self, key):
-        """get will lookup the key in the current dictionary and return the
+        """
+        get will lookup the key in the current dictionary and return the
         value. If the key is missing it will check if an 'add_option' has been
         called with this name. This will allow the add_option to prompt the
-        user or to use the default option if supplied."""
+        user or to use the default option if supplied.
+        """
         try:
             return super(Config, self).__getattr__(key)
         except AttributeError:
-            # Key was not found so we will check the available options
-            # in batch mode we will just consider options with a default
-            # option
-            return self._auto_prompt(key)
+            # Key was not found in local dictionary
+            # Check the backend if it is storing the value
+            val = None
+            if self._meta.backend:
+                val = self._meta.backend.get(key)
+            if val:
+                self['key'] = val
+            else:
+                # Key was not found so we will check the available options
+                # in batch mode we will just consider options with a default
+                # option
+                val = self._auto_prompt(key)
+            return val
+
+    def __setitem__(self, key, value):
+        """
+        Responsible for actually adding/changing a key-value pair. This
+        needs to be separated out so that setattr and setitem don't
+        clash.
+        """
+        # Save the result to the backend if enabled
+        if self._meta.backend:
+            self._meta.backend.set(key, value)
+        return super(Config, self).__setitem__(key, value)
+
+
+    def __setattr__(self, key, value, force=False):
+        """
+        Responsible for actually adding/changing a key-value pair. This
+        needs to be separated out so that setattr and setitem don't
+        clash.
+        """
+        # Save the result to the backend if enabled
+        # if force is enabled we dont want to save to backend
+        # as this is only used to create internal variables
+        if self._meta.backend and not force:
+            self._meta.backend.set(key, value)
+        return super(Config, self).__setattr__(key, value, force)
+
+
+    def __delitem__(self, key):
+        """
+        Responsible for actually deleting a key-value pair. This needs
+        to be separated out so that delattr and delitem don't clash.
+        """
+        # Save the result to the backend if enabled
+        if self._meta.backend:
+            self._meta.backend.delete(key)
+        return super(Config, self).__delitem__(key)
+
+
+    def __delattr__(self, key):
+        """
+        Responsible for actually deleting a key-value pair. This needs
+        to be separated out so that delattr and delitem don't clash.
+        """
+        # Save the result to the backend if enabled
+        if self._meta.backend:
+            self._meta.backend.delete(key)
+        return super(Config, self).__delattr__(key)
 
     def _auto_prompt(self, key):
         """
@@ -76,7 +148,27 @@ class Config(attrdict.AttrDict):
         raise
 
     def sync(self):
-        return True
+        """
+        Ensures the local dictionary is synced up with the backend
+        returns False on error with sync
+        """
+        try:
+            if self._meta.backend:
+                return self._meta.backend.sync()
+        except AttributeError:
+            pass
+        return False
+
+    def close(self):
+        """
+        Closes the backend if it supports it
+        """
+        try:
+            if self._meta.backend:
+                return self._meta.backend.close()
+        except AttributeError:
+            pass
+        return False
 
     def add_option(self, *args, **kwargs):
         self._meta.available_keywords.append(ConfigObject(*args, **kwargs))
@@ -91,8 +183,8 @@ class Config(attrdict.AttrDict):
                 self[k.name] = val
         return True
 
-    def load(self):
-        pass
+    # def load(self):
+    #     pass
 
 
 def prompt_user(*args, **kwargs):
@@ -154,6 +246,9 @@ class ConfigObject(object):
         while True:
             val = prompt_user(self.msg)
 
+            if self.retries < 0:
+                    raise TooManyRetries("You can only select an option from the specified list! Exiting...")
+
             # At the prompt entering '?' will print the help
             # for the item if available.
             if self.help and val == '':
@@ -168,21 +263,18 @@ class ConfigObject(object):
                 if self.default:
                     val = self.default
                 else:
-                    print("Answers must be not be empty. Please try again!")
+                    print("Answer must be not be empty. Please try again!")
                     continue
 
             # Validate self.choices
             if self.choices and val not in self.choices:
-                if self.retries < 0:
-                    raise TooManyRetries("You can only select an option from the specified list! Exiting...")
-                else:
-                    print("You have selected an invalid answer! Please try again.")
-                    continue
+                print("You have selected an invalid answer! Please try again.")
+                continue
 
             try:
                 return self.returntype(val)
             except ValueError:
-                print("Invalid answer. Could not interpret your response '%s' as %s. Please try again!" % (val, self.returntype))
+                print("Could not interpret your answer '%s' as %s. Please try again!" % (val, self.returntype))
                 continue
             return val
 
