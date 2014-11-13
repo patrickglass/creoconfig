@@ -62,7 +62,7 @@ class TestCaseFileStorageBackend(unittest.TestCase):
 
     def setUp(self):
         self.filename = 'tmp.config'
-        self.s = FileStorageBackend(filename=self.filename)
+        self.s = FileStorageBackend(self.filename)
 
     def test_set(self):
         self.assertTrue(self.s.set('mykey', 'myval'))
@@ -78,7 +78,7 @@ class TestCaseFileStorageBackend(unittest.TestCase):
     def test_delete_exists(self):
         self.assertTrue(self.s.set('mykey', 'myval'))
         self.assertEqual(self.s.get('mykey', 'defaultvalue'), 'myval')
-        self.assertTrue(self.s.delete('mykey'))
+        self.s.delete('mykey')
         self.assertEqual(self.s.get('mykey', 'defaultvalue'), 'defaultvalue')
 
     def test_delete_not_exists(self):
@@ -86,7 +86,10 @@ class TestCaseFileStorageBackend(unittest.TestCase):
 
     def test_object_key(self):
         mykey = object()
+        # mykey = '234234'
         self.assertRaises(TypeError, self.s.set, mykey, 'myval')
+        self.assertRaises(TypeError, self.s.set, mykey, 'myval2')
+        self.assertRaises(TypeError, self.s.set, mykey, 'myval3')
 
     def test_object_value(self):
         mykey = '234234'
@@ -98,8 +101,10 @@ class TestCaseFileStorageBackend(unittest.TestCase):
         self.assertEqual(self.s.close(), None)
 
     def tearDown(self):
-        self.s.close()
-        del self.s
+        try:
+            self.s.close()
+        except:
+            pass
         try:
             os.remove(self.filename)
         except:
@@ -108,6 +113,13 @@ class TestCaseFileStorageBackend(unittest.TestCase):
             os.remove(self.filename + '.db')
         except:
             pass
+
+    def test_data_persistance(self):
+        s = FileStorageBackend(self.filename)
+        s.set('mykey', 'myvalue')
+
+        s = FileStorageBackend(self.filename)
+        self.assertEqual(s.get('mykey', 'myvalue'), 'myvalue')
 
 
 # @unittest.skip("Redis Backend Requires Server")
