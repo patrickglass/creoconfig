@@ -36,11 +36,12 @@ class TestCaseMemStorageBackend(unittest.TestCase):
     def test_delete_exists(self):
         self.assertTrue(self.s.set('mykey', 'myval'))
         self.assertEqual(self.s.get('mykey', 'defaultvalue'), 'myval')
-        self.assertTrue(self.s.delete('mykey'))
+        self.s.delete('mykey')
         self.assertEqual(self.s.get('mykey', 'defaultvalue'), 'defaultvalue')
 
     def test_delete_not_exists(self):
-        self.assertFalse(self.s.delete('mykey'))
+        # self.assertFalse(self.s.delete('mykey'))
+        self.assertRaises(KeyError, self.s.delete, 'mykey')
 
     def test_object_key(self):
         mykey = object()
@@ -82,7 +83,8 @@ class TestCaseFileStorageBackend(unittest.TestCase):
         self.assertEqual(self.s.get('mykey', 'defaultvalue'), 'defaultvalue')
 
     def test_delete_not_exists(self):
-        self.assertFalse(self.s.delete('mykey'))
+        # self.assertFalse(self.s.delete('mykey'))
+        self.assertRaises(KeyError, self.s.delete, 'mykey')
 
     def test_object_key(self):
         mykey = object()
@@ -142,11 +144,12 @@ class TestCaseRedisStorageBackend(unittest.TestCase):
     def test_delete_exists(self):
         self.assertTrue(self.s.set('mykey', 'myval'))
         self.assertEqual(self.s.get('mykey', 'defaultvalue'), 'myval')
-        self.assertTrue(self.s.delete('mykey'))
+        self.s.delete('mykey')
         self.assertEqual(self.s.get('mykey', 'defaultvalue'), 'defaultvalue')
 
+    # @untitest.skip("Redis does not throw exception on missing key")
     def test_delete_not_exists(self):
-        self.assertFalse(self.s.delete('mykey'))
+        self.assertRaises(KeyError, self.s.delete, 'mykey')
 
     def test_dict_key(self):
         mykey = {'a': 123, 'b': '1231'}

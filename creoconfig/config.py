@@ -9,143 +9,143 @@ try:
     import readline
 except ImportError:
     pass
-import attrdict
-from exceptions import BatchModeUnableToPromt, TooManyRetries, IllegalArgumentError
-
+import re
+import collections
+from exceptions import (
+    BatchModeUnableToPromt,
+    TooManyRetries,
+    IllegalArgumentError
+)
+from storagebackend import MemStorageBackend
 
 # This is a global environment settings attribute dictionary
 # it is used for storing all config information once read in.
-class Config(attrdict.AttrDict):
-    """Defined the config variables and their validation methods"""
-    def __init__(self, *args, **kwargs):
-        # Define an internal structure to hold Config internal settings
-        super(Config, self).__setattr__('_meta', attrdict.AttrDict(), force=True)
-        # Update storagebackends as soon as a value changes
-        self._meta.backend = kwargs.pop('backend', None)
-        self._meta.autosync = kwargs.pop('autosync', True)
-        self._meta.batchmode = kwargs.pop('batch', False)
+class Config(collections.MutableMapping):
+    """"
+    This is a global environment settings attribute dictionary
+    it is used for storing all config information once read in.
+    """
+
+    def __init__(self, backend=MemStorageBackend(), batch=False, *args, **kwargs):
+        """Defined the config variables and their validation methods"""
+        # self._store = backend
+        super(Config, self).__setattr__('_store', backend)
+        # self._isbatch = batch
+        super(Config, self).__setattr__('_isbatch', batch)
         # Store the variables which have a help menu. When one of these
         # is accessed and not found it will start a interactive prompt.
         # If batch mode is enabled then an Exception will be thrown
-        self._meta.available_keywords = []
-        return super(Config, self).__init__(*args, **kwargs)
+        # self._available_keywords = []
+        super(Config, self).__setattr__('_available_keywords', [])
 
-    def __getitem__(self, key):
-        """
-        get will lookup the key in the current dictionary and return the
-        value. If the key is missing it will check if an 'add_option' has been
-        called with this name. This will allow the add_option to prompt the
-        user or to use the default option if supplied.
-        """
-        try:
-            return super(Config, self).__getitem__(key)
-        except KeyError:
-            # Key was not found in local dictionary
-            # Check the backend if it is storing the value
-            val = None
-            if self._meta.backend:
-                val = self._meta.backend.get(key)
-            if val:
-                self['key'] = val
-            else:
-                # Key was not found so we will check the available options
-                # in batch mode we will just consider options with a default
-                # option
-                val = self._auto_prompt(key)
-            return val
+    @classmethod
+    def _check_key_name(cls, name):
+        """Checks the name is valid for creating a new attribute
 
-    def __getattr__(self, key):
+        Using attribute assignments we only want to allow simple string
+        name for keys. We also check the current class for a name collision
         """
-        get will lookup the key in the current dictionary and return the
-        value. If the key is missing it will check if an 'add_option' has been
-        called with this name. This will allow the add_option to prompt the
-        user or to use the default option if supplied.
-        """
-        try:
-            return super(Config, self).__getattr__(key)
-        except AttributeError:
-            # Key was not found in local dictionary
-            # Check the backend if it is storing the value
-            val = None
-            if self._meta.backend:
-                val = self._meta.backend.get(key)
-            if val:
-                self['key'] = val
-            else:
-                # Key was not found so we will check the available options
-                # in batch mode we will just consider options with a default
-                # option
-                val = self._auto_prompt(key)
-            return val
+        return (isinstance(name, basestring) and
+                re.match('^[A-Za-z][A-Za-z0-9_]*$', name) and
+                not hasattr(cls, name))
 
-    def __setitem__(self, key, value):
-        """
-        Responsible for actually adding/changing a key-value pair. This
-        needs to be separated out so that setattr and setitem don't
-        clash.
-        """
-        # Save the result to the backend if enabled
-        if self._meta.backend:
-            self._meta.backend.set(key, value)
-        return super(Config, self).__setitem__(key, value)
+    def _delete(self, key):
+        """Deletes a value given the `key`
 
-
-    def __setattr__(self, key, value, force=False):
+        Responsible for actually deleting a key-value pair. This needs
+        to be separated out so that delattr and delitem don't clash.
         """
-        Responsible for actually adding/changing a key-value pair. This
-        needs to be separated out so that setattr and setitem don't
-        clash.
-        """
-        # Save the result to the backend if enabled
-        # if force is enabled we dont want to save to backend
-        # as this is only used to create internal variables
-        if self._meta.backend and not force:
-            self._meta.backend.set(key, value)
-        return super(Config, self).__setattr__(key, value, force)
-
+        return self._store.delete(key)
 
     def __delitem__(self, key):
-        """
-        Responsible for actually deleting a key-value pair. This needs
-        to be separated out so that delattr and delitem don't clash.
-        """
-        # Save the result to the backend if enabled
-        if self._meta.backend:
-            self._meta.backend.delete(key)
-        return super(Config, self).__delitem__(key)
-
+        return self._delete(key)
 
     def __delattr__(self, key):
+        try:
+            return self._delete(key)
+        except KeyError, msg:
+            raise AttributeError(msg)
+
+    def get(self, key, default=None):
+        """Gets the value associated with the key
+
+        First tests the backend to see if the key is stored. If the key does
+        not exists and a `default` value was passed in then this will be
+        returned. If no value is stored and default is not set then it will
+        try to see if someone has defined the key via the `add_option` method.
+        As long as we are not in batchmode the class will prompt the user to
+        suppply the value as per the configuration. This value will then be
+        stored in the backend for later use.
+
+        Params:
+            key: string identifier for the value
+            default: if key is not found the default is returned.
+
+        Returns:
+            Value stored via the `key` or and Exception
+
+        Raises:
+            KeyError: If the key is not found and default is not set
+                KeyError will be raised.
+            BatchModeUnableToPromt: if prompting is possible but
+                `batch` is enabled.
+            TooManyRetries: When prompted user is unable to enter in
+                a valid value based on `add_option` specifications.
         """
-        Responsible for actually deleting a key-value pair. This needs
-        to be separated out so that delattr and delitem don't clash.
+        # Backends get will return None if key is not found
+        val = self._store.get(key, default)
+        if val is None and not default:
+            return self._auto_prompt(key)
+        return val
+
+    def __getitem__(self, key):
+        return self.get(key)
+
+    def __getattr__(self, key):
+        """__get_attr__ will raise the correct exception if key is not found"""
+        try:
+            return self.get(key)
+        except KeyError, msg:
+            raise AttributeError(msg)
+
+    def _set(self, key, value):
         """
-        # Save the result to the backend if enabled
-        if self._meta.backend:
-            self._meta.backend.delete(key)
-        return super(Config, self).__delattr__(key)
+        Responsible for actually adding/changing a key-value pair. This
+        needs to be separated out so that setattr and setitem don't
+        clash.
+        """
+        return self._store.set(key, value)
+
+    def __setitem__(self, key, value):
+        return self._set(key, value)
+
+    def __setattr__(self, key, value):
+        return self._set(key, value)
+
+    def __iter__(self):
+        return self._store.__iter__()
+
+    def __len__(self):
+        return len(self._store)
 
     def _auto_prompt(self, key):
         """
         Key was not found so we will check the available options
         in batch mode we will just consider options with a default option
         """
-        print "INFO: AttributeError Exception handler"
-        for k in self._meta.available_keywords:
+        for k in self._available_keywords:
             if k.name == key:
-                if self._meta.batchmode:
+                if self._isbatch:
                     if k.default:
-                        print "INFO: default was set"
                         val = k.default
                     else:
-                        # We can't handle anything in batchmode
-                        raise
+                        break
                 else:
                     val = k.prompt()
                 self['key'] = val
                 return val
-        # Unable to handle AttributeError, reraise it.
-        raise
+        # Unable to prompt user for value
+        raise KeyError("key '%s' was not found.")
 
     def sync(self):
         """
@@ -153,8 +153,8 @@ class Config(attrdict.AttrDict):
         returns False on error with sync
         """
         try:
-            if self._meta.backend:
-                return self._meta.backend.sync()
+            if self._store:
+                return self._store.sync()
         except AttributeError:
             pass
         return False
@@ -164,27 +164,24 @@ class Config(attrdict.AttrDict):
         Closes the backend if it supports it
         """
         try:
-            if self._meta.backend:
-                return self._meta.backend.close()
+            if self._store:
+                return self._store.close()
         except AttributeError:
             pass
         return False
 
     def add_option(self, *args, **kwargs):
-        self._meta.available_keywords.append(ConfigObject(*args, **kwargs))
+        self._available_keywords.append(ConfigObject(*args, **kwargs))
         return True
 
     def prompt(self):
-        for k in self._meta.available_keywords:
-            if k.name not in self:
-                if self._meta.batchmode:
+        for k in self._available_keywords:
+            if k.name not in self._store:
+                if self._isbatch:
                     raise BatchModeUnableToPromt("%s not found. Please exit batchmode to start wizard or set this variable manually." % k.name)
                 val = k.prompt()
                 self[k.name] = val
         return True
-
-    # def load(self):
-    #     pass
 
 
 def prompt_user(*args, **kwargs):
@@ -230,6 +227,9 @@ class ConfigObject(object):
 
         # map choices to string items since all comparasons are string based.
         self.choices = map(str, choices)
+
+    def __repr__(self):
+        return "%s %s: %s (%s)" % (self.name, self.returntype, self.choices, self.default)
 
     def prompt(self):
 

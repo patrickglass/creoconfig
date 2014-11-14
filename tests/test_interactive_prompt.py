@@ -32,6 +32,17 @@ def interactive_prompt():
 
     c.prompt()
 
+    c.data = 'mydataval'
+    c.another = 'moredata'
+    c.another1 = 'abcs'
+
+    print c
+    print c._store.__dict__
+    print c._available_keywords
+    print c._isbatch
+
+    # print "Missing: %s" % c.missingkey
+
     print("Configuration:")
     for k,v in c.iteritems():
         print("\t%s: %s" % (k, v))

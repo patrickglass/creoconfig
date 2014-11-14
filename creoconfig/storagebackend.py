@@ -3,6 +3,8 @@ StorageBackend
 """
 import shelve
 import redis
+import collections
+
 
 class StorageBackend(object):
     def set(self, key, value, *args, **kwargs):
@@ -12,6 +14,9 @@ class StorageBackend(object):
         raise NotImplementedError("This method must be redefined in the subclass")
 
     def delete(self, key, *args, **kwargs):
+        raise NotImplementedError("This method must be redefined in the subclass")
+
+    def __iter__(self):
         raise NotImplementedError("This method must be redefined in the subclass")
 
 
@@ -27,11 +32,14 @@ class MemStorageBackend(StorageBackend):
         return self.dict.get(key, default)
 
     def delete(self, key, *args, **kwargs):
-        try:
-            del self.dict[key]
-        except KeyError:
-            return False
-        return True
+        del self.dict[key]
+
+    def __iter__(self):
+        return self.dict.__iter__()
+
+    # def __iter__(self):
+    # for item in self.dict.items():
+    #     yield item
 
 
 class FileStorageBackend(MemStorageBackend):
@@ -46,10 +54,7 @@ class FileStorageBackend(MemStorageBackend):
         return self.dict.get(key, default)
 
     def delete(self, key, *args, **kwargs):
-        try:
-            del self.dict[key]
-        except KeyError:
-            return False
+        del self.dict[key]
 
     def close(self):
         return self.dict.close()
@@ -59,6 +64,9 @@ class FileStorageBackend(MemStorageBackend):
 
     def __del__(self):
         self.close()
+
+    def __iter__(self):
+        return self.dict.__iter__()
 
 
 class RedisStorageBackend(StorageBackend):
@@ -78,4 +86,8 @@ class RedisStorageBackend(StorageBackend):
         return self.r.get(key) or default
 
     def delete(self, key, *args, **kwargs):
-        return self.r.delete(key)
+        if not self.r.delete(key):
+            raise KeyError("Could not find key '%s' to delete." % key)
+
+    def __iter__(self):
+        return self.r.hscan_iter()

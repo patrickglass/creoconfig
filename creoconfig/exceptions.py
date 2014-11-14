@@ -22,3 +22,7 @@ class BatchModeUnableToPromt(ConfigException):
 class TooManyRetries(ConfigException):
     """User failed to enter valid options to many times"""
     pass
+
+# class KeyNotFound(ConfigException)
+#     """Key supplied was not found"""
+#     pass

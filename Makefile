@@ -5,6 +5,10 @@ test: chmod_quick
 	# Run the test suite with coverage enabled
 	nosetests -v --with-coverage --cover-package creoconfig --cover-inclusive --cover-branches
 
+test_quick: chmod_quick
+	# Run the test suite with coverage enabled
+	nosetests -v --with-coverage --cover-package creoconfig --cover-inclusive --cover-branches --stop
+
 interactive:
 	python -Wall tests/test_interactive_prompt.py
 
@@ -20,4 +24,4 @@ clean: chmod
 	# Delete any generated files
 	@find . -name "*.py?" | xargs rm -f
 
-.PHONY: chmod chmod_quick test clean
+.PHONY: chmod chmod_quick test test_quick clean
