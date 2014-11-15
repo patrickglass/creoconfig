@@ -6,7 +6,8 @@ from config import Config
 from storagebackend import (
     MemStorageBackend,
     FileStorageBackend,
-    RedisStorageBackend
+    RedisStorageBackend,
+    ConfigParserStorageBackend
 )
 
 

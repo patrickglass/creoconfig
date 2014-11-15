@@ -6,6 +6,7 @@ UnitTest framework for validating CreoConfig
 """
 import os
 import sys
+import uuid
 sys.path.append(os.path.realpath('.'))
 
 from creoconfig import Config
@@ -13,8 +14,13 @@ from creoconfig.exceptions import *
 from creoconfig import FileStorageBackend
 
 
-filename = 'tmp_interactive_test.cfg'
 
+def gen_new_filename(base='tmp_interactive_save_%s.cfg'):
+    f = base % uuid.uuid1()
+    print("INFO: Generated new file: %s" % f)
+    return f
+
+filename = gen_new_filename()
 
 def interactive_prompt():
     s = FileStorageBackend(filename)
@@ -23,7 +29,6 @@ def interactive_prompt():
     print("Configuration Start:")
     for k,v in c.iteritems():
         print("\t%s: %s" % (k, v))
-
 
     c.add_option('strkey',
         prefix='Please enter string',

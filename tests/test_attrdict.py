@@ -6,7 +6,10 @@ from __future__ import print_function
 import os
 from sys import version_info
 from tempfile import mkstemp
-import unittest
+try:
+    import unittest2 as unittest
+except:
+    import unittest
 
 
 PY2 = version_info < (3,)

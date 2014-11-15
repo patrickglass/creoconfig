@@ -12,7 +12,7 @@ except ImportError:
 import re
 import collections
 from exceptions import (
-    BatchModeUnableToPromt,
+    BatchModeUnableToPrompt,
     TooManyRetries,
     IllegalArgumentError
 )
@@ -26,9 +26,10 @@ class Config(collections.MutableMapping):
     it is used for storing all config information once read in.
     """
 
-    def __init__(self, backend=MemStorageBackend(), batch=False, *args, **kwargs):
+    def __init__(self, backend=None, batch=False, *args, **kwargs):
         """Defined the config variables and their validation methods"""
-        # self._store = backend
+        if not backend:
+            backend = MemStorageBackend()
         super(Config, self).__setattr__('_store', backend)
         # self._isbatch = batch
         super(Config, self).__setattr__('_isbatch', batch)
@@ -87,22 +88,28 @@ class Config(collections.MutableMapping):
         Raises:
             KeyError: If the key is not found and default is not set
                 KeyError will be raised.
-            BatchModeUnableToPromt: if prompting is possible but
+            BatchModeUnableToPrompt: if prompting is possible but
                 `batch` is enabled.
             TooManyRetries: When prompted user is unable to enter in
                 a valid value based on `add_option` specifications.
         """
-        # Backends get will return None if key is not found
-        val = self._store.get(key, default)
-        if val is None and not default:
-            return self._auto_prompt(key)
+        # print("INFO: Config.get(%s, default=%s)" % (key, default))
+        # print("INFO: Config Dict: %s" % str(self._store.__dict__))
+        try:
+            val = self._store.get(key)
+        except KeyError:
+            val = default
+            if val is None and not default:
+                return self._auto_prompt(key)
         return val
 
     def __getitem__(self, key):
+        # print("INFO: Config.__getitem__(%s)" % key)
         return self.get(key)
 
     def __getattr__(self, key):
         """__get_attr__ will raise the correct exception if key is not found"""
+        # print("INFO: Config.__getattr__(%s)" % key)
         try:
             return self.get(key)
         except KeyError, msg:
@@ -114,12 +121,15 @@ class Config(collections.MutableMapping):
         needs to be separated out so that setattr and setitem don't
         clash.
         """
+        # print("INFO: Config.set(%s, %s)" % (key, value))
         return self._store.set(key, value)
 
     def __setitem__(self, key, value):
+        # print("INFO: Config.__setitem__(%s, %s)" % (key, value))
         return self._set(key, value)
 
     def __setattr__(self, key, value):
+        # print("INFO: Config.__setattr__(%s, %s)" % (key, value))
         return self._set(key, value)
 
     def __iter__(self):
@@ -142,7 +152,7 @@ class Config(collections.MutableMapping):
                         break
                 else:
                     val = k.prompt()
-                self['key'] = val
+                self._set(key, val)
                 return val
         # Unable to prompt user for value
         raise KeyError("key '%s' was not found.")
@@ -153,11 +163,9 @@ class Config(collections.MutableMapping):
         returns False on error with sync
         """
         try:
-            if self._store:
-                return self._store.sync()
+            return self._store.sync()
         except AttributeError:
-            pass
-        return False
+            return False
 
     def close(self):
         """
@@ -170,6 +178,12 @@ class Config(collections.MutableMapping):
             pass
         return False
 
+    def enable_batch(self):
+        super(Config, self).__setattr__('_isbatch', True)
+
+    def disable_batch(self):
+        super(Config, self).__setattr__('_isbatch', False)
+
     def add_option(self, *args, **kwargs):
         self._available_keywords.append(ConfigObject(*args, **kwargs))
         return True
@@ -178,9 +192,9 @@ class Config(collections.MutableMapping):
         for k in self._available_keywords:
             if k.name not in self._store:
                 if self._isbatch:
-                    raise BatchModeUnableToPromt("%s not found. Please exit batchmode to start wizard or set this variable manually." % k.name)
+                    raise BatchModeUnableToPrompt("%s not found. Please exit batchmode to start wizard or set this variable manually." % k.name)
                 val = k.prompt()
-                self[k.name] = val
+                self._set(k.name, val)
         return True
 
 

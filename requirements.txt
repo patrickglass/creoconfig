@@ -10,3 +10,4 @@ nose
 mock
 fakeredis
 redis
+unittest2

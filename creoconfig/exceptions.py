@@ -11,7 +11,7 @@ class IllegalArgumentError(ConfigException):
     """Thrown when the arguments passed in need to be fixed."""
     pass
 
-class BatchModeUnableToPromt(ConfigException):
+class BatchModeUnableToPrompt(ConfigException):
     """
     Thrown when Config is in batch mode and a key was not found
     Normally this would invoke the wizard to prompt the user to fill in

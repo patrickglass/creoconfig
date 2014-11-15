@@ -4,9 +4,14 @@ Module test_creoconfig
 
 UnitTest framework for validating CreoConfig
 """
+# try:
+#     import unittest2 as unittest
+# except:
+import os
+import base64
 import unittest
 from mock import patch
-from creoconfig import Config, FileStorageBackend
+from creoconfig import Config, FileStorageBackend, ConfigParserStorageBackend
 from creoconfig.exceptions import *
 
 
@@ -31,6 +36,45 @@ class TestCaseConfig(unittest.TestCase):
         self.assertEqual(c.mykey, 'myvalue')
         c['mykey'] = 'myvalue2'
         self.assertEqual(c.mykey, 'myvalue2')
+        c.mykey = 1234
+        self.assertEqual(c['mykey'], 1234)
+
+    def test_attr_set_alter_get(self):
+        c = Config()
+        c.mykey = 'myvalue'
+        c.mykey2 = 'myvalue2'
+        c.mykey3 = 'myvalue3'
+        c.mykey = 'resetvalue'
+        self.assertEqual(c.mykey, 'resetvalue')
+        self.assertEqual(c.mykey2, 'myvalue2')
+        self.assertEqual(c.mykey3, 'myvalue3')
+        c.mykey = 'myvalue2'
+        self.assertEqual(c.mykey, 'myvalue2')
+        c.mykey = 'myvalue3'
+        self.assertEqual(c.mykey, 'myvalue3')
+        c.mykey = 1234
+        self.assertEqual(c['mykey'], 1234)
+
+
+    def test_dict_set_alter_get(self):
+        c = Config()
+        c['mykey'] = 'myvalue'
+        self.assertEqual(c['mykey'], 'myvalue')
+        c['mykey'] = 'myvalue2'
+        self.assertEqual(c['mykey'], 'myvalue2')
+        c['mykey'] = 'myvalue3'
+        self.assertEqual(c['mykey'], 'myvalue3')
+        c['mykey'] = 1234
+        self.assertEqual(c['mykey'], 1234)
+
+    def test_dict_attr_set_alter_get(self):
+        c = Config()
+        c['mykey'] = 'myvalue'
+        self.assertEqual(c['mykey'], 'myvalue')
+        c.mykey = 'myvalue2'
+        self.assertEqual(c.mykey, 'myvalue2')
+        c['mykey'] = 'myvalue3'
+        self.assertEqual(c['mykey'], 'myvalue3')
         c.mykey = 1234
         self.assertEqual(c['mykey'], 1234)
 
@@ -86,6 +130,64 @@ class TestCaseConfig(unittest.TestCase):
         c = Config()
         c.sync()
 
+    def test_batch_enable(self):
+        """test_batch_enable - ensure we can enable batchmode if not set"""
+        c = Config()
+        print c.__dict__
+        print c._store.__dict__
+        self.assertFalse(c._isbatch)
+        c.enable_batch()
+        print c.__dict__
+        print c._store.__dict__
+        self.assertTrue(c._isbatch)
+
+    def test_batch_disable(self):
+        """test_batch_disable - ensure we can disable batchmode if set"""
+        c = Config(batch=True)
+        self.assertTrue(c._isbatch)
+        c.disable_batch()
+        self.assertFalse(c._isbatch)
+
+    def test_erase_all(self):
+        c = Config()
+        c.mykey = 'myvalue'
+        c.mykey2 = 'myvalue2'
+        c.mykey3 = 'myvalue3'
+        c.mykey = 'resetvalue'
+        self.assertEqual(c.mykey, 'resetvalue')
+        self.assertEqual(c.mykey2, 'myvalue2')
+        self.assertEqual(c.mykey3, 'myvalue3')
+        self.assertEqual(len(c), 3)
+        # Delete all the items
+        for x in c.keys():
+            del c[x]
+        self.assertEqual(len(c), 0)
+        self.assertRaises(AttributeError, getattr, c, 'mykey')
+        c.testkey = 'avalue'
+        self.assertEqual(c.testkey, 'avalue')
+        self.assertEqual(len(c), 1)
+
+    def test_len(self):
+        c = Config()
+        self.assertEqual(len(c), 0)
+        c.mykey = 'myvalue'
+        self.assertEqual(len(c), 1)
+        c.mykey2 = 'myvalue2'
+        self.assertEqual(len(c), 2)
+        c.mykey3 = 'myvalue3'
+        self.assertEqual(len(c), 3)
+        c.mykey = 'resetvalue'
+        self.assertEqual(len(c), 3)
+        del c.mykey
+        self.assertEqual(len(c), 2)
+        c.mykey = 1243
+        self.assertEqual(len(c), 3)
+        # Delete all the items
+        for x in c.keys():
+            print "INFO: Deleting %s" % x
+            del c[x]
+        self.assertEqual(len(c), 0)
+
 
 class TestWizardPrompt(unittest.TestCase):
 
@@ -104,18 +206,17 @@ class TestWizardPrompt(unittest.TestCase):
     def test_prompt_batchmode_enabled(self):
         c = Config(batch=True)
         c.add_option('intkey', help='This is a int key', type=int)
-        self.assertRaises(BatchModeUnableToPromt, lambda: c.prompt())
-        self.assertRaises(BatchModeUnableToPromt, lambda: c.prompt())
+        self.assertRaises(BatchModeUnableToPrompt, lambda: c.prompt())
+        self.assertRaises(BatchModeUnableToPrompt, lambda: c.prompt())
 
-    @unittest.skip("working on fixing prompt after refactor")
     @patch('creoconfig.config.prompt_user', return_value='abc')
     def test_prompt_batchmode_enabled_disabled(self, input):
         c = Config(batch=True)
         c.add_option('strkey', help='This is a string key')
-        self.assertRaises(BatchModeUnableToPromt, lambda: c.prompt())
-        self.assertRaises(BatchModeUnableToPromt, lambda: c.prompt())
+        self.assertRaises(BatchModeUnableToPrompt, lambda: c.prompt())
+        self.assertRaises(BatchModeUnableToPrompt, lambda: c.prompt())
         self.assertRaises(KeyError, lambda: c['strkey'])
-        c._isbatch = False
+        c.disable_batch()
         print "BatchMode: %s" % c._isbatch
         print "options: %s" % c._available_keywords
         self.assertTrue(c.prompt())
@@ -313,80 +414,137 @@ class TestConfigOptionAutoPrompt(unittest.TestCase):
 class TestConfigFileBackend(unittest.TestCase):
 
     def setUp(self):
-        self.filename = 'tmp_TestConfigFileBackend.cfg'
-    #     self.backend = FileStorageBackend(filename=self.filename)
-    #     self.c = Config(batch=True, backend=self.backend)
+        self.files = []
 
-    # def test_create_mykey(self):
-    #     self.c.mykey = 'myvalue'
-
-    # def test_get_mykey(self):
-    #     self.assertEqual(self.c.mykey, 'myvalue')
+    def gen_new_filename(self, base='tmp_%s.cfg'):
+        # f = base % uuid.uuid1()
+        f = base % base64.b16encode(os.urandom(16))
+        self.files.append(f)
+        print("INFO: Generated new file: %s" % f)
+        return f
 
     def test_sync_ok(self):
         """Config.sync() should not throw an exception"""
-        s = FileStorageBackend(self.filename)
+        s = FileStorageBackend(self.gen_new_filename())
         c = Config(backend=s)
         c.sync()
 
-    @unittest.skip("Not working since backend does not populate mapping")
-    def test_file_persistance(self):
-        c = Config(backend=FileStorageBackend(self.filename))
-        self.assertRaises(AttributeError, c, 'mykey')
-        c.mykey = 'myvalue'
-        c.anotherkey = 'someothervalue'
-        print c['mykey']
-        print c.__dict__
-        print c._backend.__dict__
-        print c._mapping
-        self.assertEqual(c.mykey, 'myvalue')
-
+    # @unittest.skip("not working")
+    def test_file_persistance_context(self):
+        def create_data():
+            f = self.gen_new_filename()
+            c = Config(backend=FileStorageBackend(f))
+            self.assertRaises(AttributeError, getattr, c, 'mykey')
+            c.mykey = 'myvalue'
+            c.keytodelete = 'secretvalue'
+            c.anotherkey = 'someothervalue'
+            print c['mykey']
+            print c._store.__dict__
+            self.assertEqual(c.mykey, 'myvalue')
+            self.assertEqual(c.keytodelete, 'secretvalue')
+            self.assertEqual(c.anotherkey, 'someothervalue')
+        create_data()
         # Now recreate the Config and check if value is taken
-        c = Config(backend=FileStorageBackend(self.filename))
-        self.assertEqual(c.mykey, 'myvalue')
-        # FIXME: Why does this del not work (TypeError: Invalid key: 'mykey')
-        # del c.mykey
+        c = Config(backend=FileStorageBackend(f, flag='w'))
+        print c._store.__dict__
         print c['mykey']
-        print c.__dict__
-        print c._backend.__dict__
-        print c._mapping
+        self.assertEqual(c.mykey, 'myvalue')
+        self.assertEqual(c.keytodelete, 'secretvalue')
+        self.assertEqual(c.anotherkey, 'someothervalue')
+        # FIXME: Why does this del not work (TypeError: Invalid key: 'mykey')
+        del c.keytodelete
+        print c['mykey']
+        print c._store.__dict__
         delattr(c, 'mykey')
         # del c['mykey']
         self.assertRaises(AttributeError, getattr, c, 'mykey')
         self.assertRaises(KeyError, lambda: c['mykey'])
 
-    @unittest.skip("Not working since backend does not populate mapping")
     def test_file_persistance_with_close(self):
-        c = Config(backend=FileStorageBackend(self.filename))
-        self.assertRaises(AttributeError, c, 'mykey')
+        f = self.gen_new_filename()
+        store = FileStorageBackend(f)
+        c = Config(store)
+        self.assertRaises(AttributeError, getattr, c, 'mykey')
         c.mykey = 'myvalue'
+        c.keytodelete = 'secretvalue'
+        c.anotherkey = 'someothervalue'
+        print c['mykey']
+        print c._store.__dict__
         self.assertEqual(c.mykey, 'myvalue')
+        self.assertEqual(c.keytodelete, 'secretvalue')
+        self.assertEqual(c.anotherkey, 'someothervalue')
 
         # Close should be optional, since orphaning original c
         # should auto close the backend
+        c.sync()
         c.close()
 
         # Now recreate the Config and check if value is taken
-        c = Config(backend=FileStorageBackend(self.filename))
+        # we dont want to auto create file if it does not exists.
+        # FIXME: TESTING WITH SHARED BACKEND
+        # c = Config(FileStorageBackend(f, flag='w'))
+        c = Config(store)
+        print c._store.__dict__
         self.assertEqual(c.mykey, 'myvalue')
+        self.assertEqual(c.keytodelete, 'secretvalue')
+        self.assertEqual(c.anotherkey, 'someothervalue')
         # FIXME: Why does this del not work (TypeError: Invalid key: 'mykey')
-        # del c.mykey
+        del c.keytodelete
         print c['mykey']
         del c['mykey']
+        # self.assertEqual(c.mykey, 'myvalue')
+        self.assertRaises(KeyError, lambda: c['mykey'])
+        self.assertRaises(KeyError, lambda: c['keytodelete'])
+        self.assertEqual(c.anotherkey, 'someothervalue')
         self.assertRaises(AttributeError, getattr, c, 'mykey')
         self.assertRaises(KeyError, lambda: c['mykey'])
 
-    # def tearDown(self):
-    #     self.backend.close()
-    #     del self.s
-    #     try:
-    #         os.remove(self.filename)
-    #     except:
-    #         pass
-    #     try:
-    #         os.remove(self.filename + '.db')
-    #     except:
-    #         pass
+
+    def test_file_persistance_configparser(self):
+        f = self.gen_new_filename()
+        store = ConfigParserStorageBackend(f)
+        c = Config(store)
+        self.assertRaises(AttributeError, getattr, c, 'mykey')
+        c.mykey = 'myvalue'
+        c.keytodelete = 'secretvalue'
+        c.anotherkey = 'someothervalue'
+        print c['mykey']
+        print c._store.__dict__
+        self.assertEqual(c.mykey, 'myvalue')
+        self.assertEqual(c.keytodelete, 'secretvalue')
+        self.assertEqual(c.anotherkey, 'someothervalue')
+
+        # Close should be optional, since orphaning original c
+        # should auto close the backend
+        c.sync()
+        # c.close()
+
+        # Now recreate the Config and check if value is taken
+        # we dont want to auto create file if it does not exists.
+        # FIXME: TESTING WITH SHARED BACKEND
+        # c = Config(FileStorageBackend(f, flag='w'))
+        c = Config(store)
+        print c._store.__dict__
+        self.assertEqual(c.mykey, 'myvalue')
+        self.assertEqual(c.keytodelete, 'secretvalue')
+        self.assertEqual(c.anotherkey, 'someothervalue')
+        # FIXME: Why does this del not work (TypeError: Invalid key: 'mykey')
+        del c.keytodelete
+        print c['mykey']
+        del c['mykey']
+        # self.assertEqual(c.mykey, 'myvalue')
+        self.assertRaises(KeyError, lambda: c['mykey'])
+        self.assertRaises(KeyError, lambda: c['keytodelete'])
+        self.assertEqual(c.anotherkey, 'someothervalue')
+        self.assertRaises(AttributeError, getattr, c, 'mykey')
+        self.assertRaises(KeyError, lambda: c['mykey'])
+
+    def tearDown(self):
+        # Delete all files which were created
+        while len(self.files):
+            f = self.files.pop()
+            print("INFO: Deleting file: %s" % f)
+            os.remove(f)
 
 
 
