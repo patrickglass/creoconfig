@@ -23,5 +23,6 @@ chmod_quick:
 clean: chmod
 	# Delete any generated files
 	@find . -name "*.py?" | xargs rm -f
+	@rm -rf tmp_*
 
 .PHONY: chmod chmod_quick test test_quick clean
