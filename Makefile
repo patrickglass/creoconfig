@@ -1,9 +1,13 @@
 
 default: test
 
-test: chmod_quick
+coverage: chmod_quick
 	# Run the test suite with coverage enabled
 	nosetests -v --with-coverage --cover-package creoconfig --cover-inclusive --cover-branches
+
+test: chmod_quick
+	# Run the test suite with coverage enabled
+	nosetests
 
 test_quick: chmod_quick
 	# Run the test suite with coverage enabled
@@ -25,4 +29,4 @@ clean: chmod
 	@find . -name "*.py?" | xargs rm -f
 	@rm -rf tmp_*
 
-.PHONY: chmod chmod_quick test test_quick clean
+.PHONY: coverage test test_quick chmod chmod_quick clean
