@@ -1,5 +1,5 @@
 """
-A collection of unit tests for the AttrDict class.
+A collection of unit tests for the Config class.
 """
 from __future__ import print_function
 
@@ -11,13 +11,15 @@ try:
 except:
     import unittest
 
+from creoconfig.attrdict import AttrDict as Config
+
 
 PY2 = version_info < (3,)
 
 
-class TestAttrDict(unittest.TestCase):
+class TestConfig(unittest.TestCase):
     """
-    A collection of unit tests for the AttrDict class.
+    A collection of unit tests for the Config class.
     """
     def setUp(self):
         self.tempfiles = []
@@ -31,9 +33,7 @@ class TestAttrDict(unittest.TestCase):
         Make sure that keys are accessable both as keys and attributes
         at initialization.
         """
-        from creoconfig.attrdict import AttrDict
-
-        adict = AttrDict({'foo': 'bar', 'alpha': {'beta': 2, 'bravo': {}}})
+        adict = Config({'foo': 'bar', 'alpha': {'beta': 2, 'bravo': {}}})
 
         # as key
         self.assertEqual(adict['foo'], 'bar')
@@ -54,9 +54,7 @@ class TestAttrDict(unittest.TestCase):
         Test that attributes can be accessed (both as keys, and as
         attributes).
         """
-        from creoconfig.attrdict import AttrDict
-
-        adict = AttrDict({'foo': 'bar'})
+        adict = Config({'foo': 'bar'})
 
         # found
         self.assertEqual(adict.get('foo'), 'bar')
@@ -78,10 +76,8 @@ class TestAttrDict(unittest.TestCase):
         if not PY2:  # Python2.6 doesn't have skipif/skipunless
             return
 
-        from creoconfig.attrdict import AttrDict
-
-        empty = AttrDict()
-        adict = AttrDict({'foo': 'bar', 'lorem': 'ipsum', 'alpha': {
+        empty = Config()
+        adict = Config({'foo': 'bar', 'lorem': 'ipsum', 'alpha': {
             'beta': 1, 'bravo': empty}})
 
         self.assertEqual(empty.items(), [])
@@ -135,10 +131,8 @@ class TestAttrDict(unittest.TestCase):
         if PY2:  # Python2.6 doesn't have skipif/skipunless
             return
 
-        from creoconfig.attrdict import AttrDict
-
-        empty = AttrDict()
-        adict = AttrDict({'foo': 'bar', 'lorem': 'ipsum', 'alpha': {
+        empty = Config()
+        adict = Config({'foo': 'bar', 'lorem': 'ipsum', 'alpha': {
             'beta': 1, 'bravo': empty}})
 
         iterator = empty.items()
@@ -182,9 +176,7 @@ class TestAttrDict(unittest.TestCase):
         """
         Ensure that attributes can be dynamically accessed
         """
-        from creoconfig.attrdict import AttrDict
-
-        adict = AttrDict({'foo': 'bar', 'alpha': {'beta': 2, 'bravo': {}}})
+        adict = Config({'foo': 'bar', 'alpha': {'beta': 2, 'bravo': {}}})
 
         self.assertEqual(adict('foo'), 'bar')
         self.assertEqual(adict('alpha'), {'beta': 2, 'bravo': {}})
@@ -204,9 +196,7 @@ class TestAttrDict(unittest.TestCase):
         """
         Test that key-value pairs can be added/changes as attributes
         """
-        from creoconfig.attrdict import AttrDict
-
-        adict = AttrDict({'foo': 'bar'})
+        adict = Config({'foo': 'bar'})
 
         adict.foo = 'baz'
         self.assertEqual(adict.foo, 'baz')
@@ -233,9 +223,7 @@ class TestAttrDict(unittest.TestCase):
         """
         Test that key-value pairs can be deleted as attributes.
         """
-        from creoconfig.attrdict import AttrDict
-
-        adict = AttrDict({'foo': 'bar', '_set': 'shadows', 'get': 'shadows'})
+        adict = Config({'foo': 'bar', '_set': 'shadows', 'get': 'shadows'})
 
         del adict.foo
 
@@ -288,9 +276,7 @@ class TestAttrDict(unittest.TestCase):
         """
         Test that key-value pairs can be added/changes as keys
         """
-        from creoconfig.attrdict import AttrDict
-
-        adict = AttrDict({'foo': 'bar'})
+        adict = Config({'foo': 'bar'})
 
         adict['foo'] = 'baz'
         self.assertEqual(adict.foo, 'baz')
@@ -309,9 +295,7 @@ class TestAttrDict(unittest.TestCase):
         """
         Test that key-value pairs can be deleted as keys.
         """
-        from creoconfig.attrdict import AttrDict
-
-        adict = AttrDict({'foo': 'bar', '_set': 'shadows', 'get': 'shadows'})
+        adict = Config({'foo': 'bar', '_set': 'shadows', 'get': 'shadows'})
 
         del adict['foo']
 
@@ -359,9 +343,7 @@ class TestAttrDict(unittest.TestCase):
         """
         Tests that getitem doesn't return an attrdict.
         """
-        from creoconfig.attrdict import AttrDict
-
-        adict = AttrDict({'foo': {'bar': {'baz': 'lorem'}}})
+        adict = Config({'foo': {'bar': {'baz': 'lorem'}}})
 
         self.assertEqual(adict.foo.bar, {'baz': 'lorem'})  # works
         self.assertRaises(AttributeError, lambda: adict['foo'].bar)
@@ -369,7 +351,7 @@ class TestAttrDict(unittest.TestCase):
         self.assertEqual(adict.foo.bar.baz, 'lorem')  # works
         self.assertRaises(AttributeError, lambda: adict['foo']['bar'].baz)
 
-        adict = AttrDict({'foo': [{'bar': 'baz'}]})
+        adict = Config({'foo': [{'bar': 'baz'}]})
 
         self.assertEqual(adict.foo[0].bar, 'baz')  # works
         self.assertRaises(AttributeError, lambda: adict['foo'][0].bar)
@@ -378,9 +360,7 @@ class TestAttrDict(unittest.TestCase):
         """
         Test that contains works properly.
         """
-        from creoconfig.attrdict import AttrDict
-
-        adict = AttrDict({'foo': 'bar', '_set': 'shadows', 'get': 'shadows'})
+        adict = Config({'foo': 'bar', '_set': 'shadows', 'get': 'shadows'})
 
         self.assertTrue('foo' in adict)
         self.assertTrue('_set' in adict)
@@ -392,10 +372,8 @@ class TestAttrDict(unittest.TestCase):
         Test has_key behavior in regard to this python
         """
         import inspect
-        from creoconfig.attrdict import AttrDict
-
-        adict = AttrDict({'foo': 'bar'})
-        masked = AttrDict({'has_key': 'foobar'})
+        adict = Config({'foo': 'bar'})
+        masked = Config({'has_key': 'foobar'})
 
         if PY2:
             self.assertTrue(inspect.ismethod(adict.has_key))
@@ -411,10 +389,8 @@ class TestAttrDict(unittest.TestCase):
         """
         Test that len works properly.
         """
-        from creoconfig.attrdict import AttrDict
-
         # empty
-        adict = AttrDict()
+        adict = Config()
         self.assertEqual(len(adict), 0)
 
         # added via key
@@ -439,17 +415,15 @@ class TestAttrDict(unittest.TestCase):
         """
         Test that iter works properly.
         """
-        from creoconfig.attrdict import AttrDict
-
         # empty
-        for key in AttrDict():
+        for key in Config():
             raise AssertionError("Nothing should be run right now")
 
         # non-empty
         expected = {'alpha': 1, 'bravo': 2, 'charlie': 3}
         actual = set()
 
-        adict = AttrDict(expected)
+        adict = Config(expected)
 
         for key in adict:
             actual.add(key)
@@ -460,8 +434,6 @@ class TestAttrDict(unittest.TestCase):
         """
         Test that adding works.
         """
-        from creoconfig.attrdict import AttrDict
-
         a = {'alpha': {'beta': 1, 'a': 1}, 'lorem': 'ipsum'}
         b = {'alpha': {'bravo': 1, 'a': 0}, 'foo': 'bar'}
 
@@ -485,17 +457,17 @@ class TestAttrDict(unittest.TestCase):
             'foo': 'bar'
         }
 
-        # Both AttrDicts
-        self.assertEqual(AttrDict(a) + AttrDict(b), ab)
-        self.assertEqual(AttrDict(b) + AttrDict(a), ba)
+        # Both Configs
+        self.assertEqual(Config(a) + Config(b), ab)
+        self.assertEqual(Config(b) + Config(a), ba)
 
-        # Left AttrDict
-        self.assertEqual(AttrDict(a) + b, ab)
-        self.assertEqual(AttrDict(b) + a, ba)
+        # Left Config
+        self.assertEqual(Config(a) + b, ab)
+        self.assertEqual(Config(b) + a, ba)
 
-        # Right AttrDict
-        self.assertEqual(a + AttrDict(b), ab)
-        self.assertEqual(b + AttrDict(a), ba)
+        # Right Config
+        self.assertEqual(a + Config(b), ab)
+        self.assertEqual(b + Config(a), ba)
 
         # Defer on non-mappings
         class NonMapping(object):
@@ -505,11 +477,11 @@ class TestAttrDict(unittest.TestCase):
             def __radd__(self, other):
                 return 'success'
 
-        self.assertEqual(AttrDict(a) + NonMapping(), 'success')
+        self.assertEqual(Config(a) + NonMapping(), 'success')
 
         # with self.assertRaises(NotImplementedError)
         try:
-            NonMapping + AttrDict(b)
+            NonMapping + Config(b)
         except TypeError:
             pass  # what we want to happen
         else:
@@ -519,22 +491,18 @@ class TestAttrDict(unittest.TestCase):
         """
         Test that build works.
         """
-        from creoconfig.attrdict import AttrDict
-
-        self.assertTrue(isinstance(AttrDict._build({}), AttrDict))
-        self.assertTrue(isinstance(AttrDict._build([]), list))
-        self.assertTrue(isinstance(AttrDict._build(AttrDict()), AttrDict))
-        self.assertTrue(isinstance(AttrDict._build(1), int))
+        self.assertTrue(isinstance(Config._build({}), Config))
+        self.assertTrue(isinstance(Config._build([]), list))
+        self.assertTrue(isinstance(Config._build(Config()), Config))
+        self.assertTrue(isinstance(Config._build(1), int))
 
     def test_valid_name(self):
         """
         Test that valid_name works.
         """
-        from creoconfig.attrdict import AttrDict
-
-        self.assertTrue(AttrDict._valid_name('valid'))
-        self.assertFalse(AttrDict._valid_name('_invalid'))
-        self.assertFalse(AttrDict._valid_name('get'))
+        self.assertTrue(Config._valid_name('valid'))
+        self.assertFalse(Config._valid_name('_invalid'))
+        self.assertFalse(Config._valid_name('get'))
 
     def test_kwargs(self):
         """
@@ -546,18 +514,14 @@ class TestAttrDict(unittest.TestCase):
 
         expected = {'foo': 1, 'bar': 2}
 
-        from creoconfig.attrdict import AttrDict
-
-        self.assertEqual(return_results(**AttrDict()), {})
-        self.assertEqual(return_results(**AttrDict(expected)), expected)
+        self.assertEqual(return_results(**Config()), {})
+        self.assertEqual(return_results(**Config(expected)), expected)
 
     def test_sequences(self):
         """
-        Test that AttrDict handles Sequences properly.
+        Test that Config handles Sequences properly.
         """
-        from creoconfig.attrdict import AttrDict
-
-        adict = AttrDict({'lists': [{'value': 1}, {'value': 2}],
+        adict = Config({'lists': [{'value': 1}, {'value': 2}],
                           'tuple': ({'value': 1}, {'value': 2})})
 
         # lists
@@ -569,8 +533,8 @@ class TestAttrDict(unittest.TestCase):
         self.assertEqual(({} + adict).lists[0].value, 1)
         self.assertEqual((adict + {}).lists[1].value, 2)
 
-        self.assertEqual((AttrDict(recursive=True) + adict).lists[0].value, 1)
-        self.assertEqual((adict + AttrDict(recursive=True)).lists[1].value, 2)
+        self.assertEqual((Config(recursive=True) + adict).lists[0].value, 1)
+        self.assertEqual((adict + Config(recursive=True)).lists[1].value, 2)
 
         self.assertEqual([element.value for element in adict.lists], [1, 2])
 
@@ -590,68 +554,66 @@ class TestAttrDict(unittest.TestCase):
         self.assertTrue(({} + adict).tuple, tuple)
         self.assertTrue((adict + {}).tuple, tuple)
 
-        self.assertEqual((AttrDict(recursive=True) + adict).tuple[0].value, 1)
-        self.assertEqual((adict + AttrDict(recursive=True)).tuple[1].value, 2)
+        self.assertEqual((Config(recursive=True) + adict).tuple[0].value, 1)
+        self.assertEqual((adict + Config(recursive=True)).tuple[1].value, 2)
 
         self.assertEqual([element.value for element in adict.tuple], [1, 2])
 
         # Not recursive
-        adict = AttrDict({'lists': [{'value': 1}, {'value': 2}],
+        adict = Config({'lists': [{'value': 1}, {'value': 2}],
                           'tuple': ({'value': 1}, {'value': 2})},
                          recursive=False)
 
-        self.assertFalse(isinstance(adict.lists[0], AttrDict))
+        self.assertFalse(isinstance(adict.lists[0], Config))
 
-        self.assertFalse(isinstance(({} + adict).lists[0], AttrDict))
-        self.assertFalse(isinstance((adict + {}).lists[1], AttrDict))
+        self.assertFalse(isinstance(({} + adict).lists[0], Config))
+        self.assertFalse(isinstance((adict + {}).lists[1], Config))
 
         self.assertFalse(
-            isinstance((AttrDict(recursive=True) + adict).lists[0], AttrDict))
+            isinstance((Config(recursive=True) + adict).lists[0], Config))
         self.assertFalse(
-            isinstance((adict + AttrDict(recursive=True)).lists[1], AttrDict))
+            isinstance((adict + Config(recursive=True)).lists[1], Config))
 
-        self.assertFalse(isinstance((adict + adict).lists[0], AttrDict))
+        self.assertFalse(isinstance((adict + adict).lists[0], Config))
 
         for element in adict.lists:
-            self.assertFalse(isinstance(element, AttrDict))
+            self.assertFalse(isinstance(element, Config))
 
-        self.assertFalse(isinstance(adict('lists')[0], AttrDict))
+        self.assertFalse(isinstance(adict('lists')[0], Config))
 
         # Dict access shouldn't produce an attrdict
-        self.assertFalse(isinstance(adict['lists'][0], AttrDict))
+        self.assertFalse(isinstance(adict['lists'][0], Config))
 
-        self.assertFalse(isinstance(adict.tuple[0], AttrDict))
+        self.assertFalse(isinstance(adict.tuple[0], Config))
 
-        self.assertFalse(isinstance(({} + adict).tuple[0], AttrDict))
-        self.assertFalse(isinstance((adict + {}).tuple[1], AttrDict))
+        self.assertFalse(isinstance(({} + adict).tuple[0], Config))
+        self.assertFalse(isinstance((adict + {}).tuple[1], Config))
 
         self.assertFalse(
-            isinstance((AttrDict(recursive=True) + adict).tuple[0], AttrDict))
+            isinstance((Config(recursive=True) + adict).tuple[0], Config))
         self.assertFalse(
-            isinstance((adict + AttrDict(recursive=True)).tuple[1], AttrDict))
+            isinstance((adict + Config(recursive=True)).tuple[1], Config))
 
-        self.assertFalse(isinstance((adict + adict).tuple[0], AttrDict))
+        self.assertFalse(isinstance((adict + adict).tuple[0], Config))
 
         for element in adict.tuple:
-            self.assertFalse(isinstance(element, AttrDict))
+            self.assertFalse(isinstance(element, Config))
 
-        self.assertFalse(isinstance(adict('tuple')[0], AttrDict))
+        self.assertFalse(isinstance(adict('tuple')[0], Config))
 
         # Dict access shouldn't produce an attrdict
-        self.assertFalse(isinstance(adict['tuple'][0], AttrDict))
+        self.assertFalse(isinstance(adict['tuple'][0], Config))
 
     def test_repr(self):
         """
         Test that repr works appropriately.
         """
-        from creoconfig.attrdict import AttrDict
-
-        self.assertEqual(repr(AttrDict()), 'a{}')
-        self.assertEqual(repr(AttrDict({'foo': 'bar'})), "a{'foo': 'bar'}")
+        self.assertEqual(repr(Config()), 'a{}')
+        self.assertEqual(repr(Config({'foo': 'bar'})), "a{'foo': 'bar'}")
         self.assertEqual(
-            repr(AttrDict({'foo': {1: 2}})), "a{'foo': {1: 2}}")
+            repr(Config({'foo': {1: 2}})), "a{'foo': {1: 2}}")
         self.assertEqual(
-            repr(AttrDict({'foo': AttrDict({1: 2})})), "a{'foo': a{1: 2}}")
+            repr(Config({'foo': Config({1: 2})})), "a{'foo': a{1: 2}}")
 
     def test_copy(self):
         """
@@ -659,9 +621,7 @@ class TestAttrDict(unittest.TestCase):
         """
         from copy import copy
 
-        from creoconfig.attrdict import AttrDict
-
-        adict = AttrDict({'foo': {'bar': 'baz'}})
+        adict = Config({'foo': {'bar': 'baz'}})
         bdict = copy(adict)
         cdict = bdict
 
@@ -676,9 +636,7 @@ class TestAttrDict(unittest.TestCase):
         """
         from copy import deepcopy
 
-        from creoconfig.attrdict import AttrDict
-
-        adict = AttrDict({'foo': {'bar': 'baz'}})
+        adict = Config({'foo': {'bar': 'baz'}})
         bdict = deepcopy(adict)
         cdict = bdict
 
@@ -691,12 +649,10 @@ class TestAttrDict(unittest.TestCase):
         """
         test attrdict's defaultdict support.
         """
-        from creoconfig.attrdict import AttrDict
+        self.assertRaises(KeyError, lambda: Config()['foo'])
+        self.assertRaises(AttributeError, lambda: Config().foo)
 
-        self.assertRaises(KeyError, lambda: AttrDict()['foo'])
-        self.assertRaises(AttributeError, lambda: AttrDict().foo)
-
-        adict = AttrDict(default_factory=lambda: ('foo', 'bar', 'baz'))
+        adict = Config(default_factory=lambda: ('foo', 'bar', 'baz'))
 
         self.assertEqual(adict['foo'], ('foo', 'bar', 'baz'))
         self.assertEqual(adict('bar'), ('foo', 'bar', 'baz'))
@@ -717,9 +673,7 @@ class TestAttrDict(unittest.TestCase):
         """
         test attrdict's defaultdict support.
         """
-        from creoconfig.attrdict import AttrDict
-
-        adict = AttrDict(default_factory=lambda foo: (foo, 'bar', 'baz'),
+        adict = Config(default_factory=lambda foo: (foo, 'bar', 'baz'),
                          pass_key=True)
 
         self.assertEqual(adict['foo'], ('foo', 'bar', 'baz'))
@@ -749,11 +703,11 @@ class TestAttrDict(unittest.TestCase):
         """
         Test that load TypeErrors on kwargs other than load_function
         """
-        from creoconfig.attrdict import load, AttrDict
+        from creoconfig.attrdict import load
 
         adict = load()
 
-        self.assertTrue(isinstance(adict, AttrDict))
+        self.assertTrue(isinstance(adict, Config))
         self.assertFalse(adict)
 
     def test_load_one(self):

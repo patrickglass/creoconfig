@@ -22,6 +22,23 @@ class TestCaseConfig(unittest.TestCase):
     def setUp(self):
         self.cfg = Config
 
+    @unittest.skip("values as dicts are not supported yet")
+    def test_init(self):
+        """
+        Configs can start with initial values by passing in as extra args
+        """
+        c = self.cfg({'foo': 'bar', 'alpha': {'beta': 2, 'bravo': {}}})
+        # as key
+        self.assertEqual(c['foo'], 'bar')
+        # as attribute
+        self.assertEqual(c.foo, 'bar')
+        # nested as key
+        self.assertEqual(c['alpha'], {'beta': 2, 'bravo': {}})
+        # nested as attribute
+        self.assertEqual(c.alpha, {'beta': 2, 'bravo': {}})
+        self.assertEqual(c.alpha.beta, 2)
+        self.assertEqual(c.alpha.bravo, {})
+
     def test_options(self):
         c = self.cfg()
         c.add_option('strkey', help='This is a string key')
@@ -34,6 +51,23 @@ class TestCaseConfig(unittest.TestCase):
             help='This is a string key which only allows certail values',
             type=str,
             choices=['a', 'b', 'c', '10'])
+
+    def test_get(self):
+        """
+        Test that attributes can be accessed (both as keys, and as
+        attributes).
+        """
+        c = self.cfg({'foo': 'bar', 'mykey': 'myval'})
+        print c.__dict__
+        print c._store.store
+        # found
+        self.assertEqual(c.get('foo'), 'bar')
+        # found, default given
+        self.assertEqual(c.get('foo', 'baz'), 'bar')
+        # not found
+        self.assertRaises(KeyError, c.get, 'bar')
+        # not found, default given
+        self.assertEqual(c.get('bar', 'baz'), 'baz')
 
     def test_attr_set_get(self):
         c = self.cfg()
@@ -590,7 +624,7 @@ class TestConfigFileBackend(unittest.TestCase):
     def test_file_persistance_with_close(self):
         f = self.gen_new_filename()
         store = FileStorageBackend(f)
-        c = self.cfg(store)
+        c = self.cfg(backend=store)
         self.assertRaises(AttributeError, getattr, c, 'mykey')
         c.mykey = 'myvalue'
         c.keytodelete = 'secretvalue'
@@ -634,7 +668,7 @@ class TestConfigFileBackend(unittest.TestCase):
     def test_file_persistance_configparser(self):
         f = self.gen_new_filename()
         store = ConfigParserStorageBackend(f)
-        c = self.cfg(store)
+        c = self.cfg(backend=store)
         self.assertRaises(AttributeError, getattr, c, 'mykey')
         c.mykey = 'myvalue'
         c.keytodelete = 'secretvalue'

@@ -22,7 +22,7 @@ class TestCaseTimestampedConfig(test_creoconfig.TestCaseConfig):
     def setUp(self):
         self.cfg = TimestampedConfig
 
-    @patch('creoconfig.config.calendar.timegm', return_value=1400000000)
+    @patch('creoconfig.configtimestamped.calendar.timegm', return_value=1400000000)
     def test_gen_value(self, input):
         c = self.cfg()
         val = 'myvalue'
@@ -52,13 +52,13 @@ class TestCaseTimestampedConfig(test_creoconfig.TestCaseConfig):
         val = 'myvalue::1400000001'
         self.assertEqual(c._extract_value(val), ('myvalue', 1400000001))
 
-    @patch('creoconfig.config.calendar.timegm', return_value=1500000000)
+    @patch('creoconfig.configtimestamped.calendar.timegm', return_value=1500000000)
     def test_gen_extract_value(self, input):
         c = self.cfg()
         val = c._gen_value('myvalue2')
         self.assertEqual(c._extract_value(val), ('myvalue2', 1500000000))
 
-    @patch('creoconfig.config.calendar.timegm', return_value=1300000001)
+    @patch('creoconfig.configtimestamped.calendar.timegm', return_value=1300000001)
     def test_last_modified(self, input):
         c = self.cfg()
         c.myval = 'somevalue'
