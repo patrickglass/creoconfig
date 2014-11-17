@@ -4,9 +4,10 @@ Module test_creoconfig
 
 UnitTest framework for validating CreoConfig
 """
-# try:
-#     import unittest2 as unittest
-# except:
+try:
+    import unittest2 as unittest
+except:
+    import unittest
 import os
 import base64
 import unittest

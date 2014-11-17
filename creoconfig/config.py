@@ -32,12 +32,10 @@ class Config(collections.MutableMapping):
         if not backend:
             backend = MemStorageBackend()
         super(Config, self).__setattr__('_store', backend)
-        # self._isbatch = batch
         super(Config, self).__setattr__('_isbatch', batch)
         # Store the variables which have a help menu. When one of these
         # is accessed and not found it will start a interactive prompt.
         # If batch mode is enabled then an Exception will be thrown
-        # self._available_keywords = []
         super(Config, self).__setattr__('_available_keywords', [])
 
     @classmethod
@@ -117,11 +115,6 @@ class Config(collections.MutableMapping):
             raise AttributeError(msg)
 
     def _set(self, key, value):
-        """
-        Responsible for actually adding/changing a key-value pair. This
-        needs to be separated out so that setattr and setitem don't
-        clash.
-        """
         # print("INFO: Config.set(%s, %s)" % (key, value))
         return self._store.set(key, value)
 
@@ -199,3 +192,49 @@ class Config(collections.MutableMapping):
                 val = k.prompt()
                 self._set(k.name, val)
         return True
+
+
+class TimestampedConfig(Config):
+    def get(self, key, default=None):
+        """Gets the value associated with the key
+
+        First tests the backend to see if the key is stored. If the key does
+        not exists and a `default` value was passed in then this will be
+        returned. If no value is stored and default is not set then it will
+        try to see if someone has defined the key via the `add_option` method.
+        As long as we are not in batchmode the class will prompt the user to
+        suppply the value as per the configuration. This value will then be
+        stored in the backend for later use.
+
+        Params:
+            key: string identifier for the value
+            default: if key is not found the default is returned.
+
+        Returns:
+            Value stored via the `key` or and Exception
+
+        Raises:
+            KeyError: If the key is not found and default is not set
+                KeyError will be raised.
+            BatchModeUnableToPrompt: if prompting is possible but
+                `batch` is enabled.
+            TooManyRetries: When prompted user is unable to enter in
+                a valid value based on `add_option` specifications.
+        """
+        # print("INFO: Config.get(%s, default=%s)" % (key, default))
+        # print("INFO: Config Dict: %s" % str(self._store.__dict__))
+        try:
+            val = self._store.get(key)
+        except KeyError:
+            val = default
+            if val is None and not default:
+                return self._auto_prompt(key)
+        return val
+
+    def _set(self, key, value):
+        # print("INFO: Config.set(%s, %s)" % (key, value))
+        return self._store.set(key, value)
+
+    def last_modified(self, key):
+        """Returns the last time the key was modified"""
+        pass
