@@ -15,7 +15,7 @@ from creoconfig import FileStorageBackend
 
 
 
-def gen_new_filename(base='tmp_interactive_save_%s.cfg'):
+def gen_new_filename(base='tmp_interactive_save_%s.db'):
     f = base % uuid.uuid1()
     print("INFO: Generated new file: %s" % f)
     return f
