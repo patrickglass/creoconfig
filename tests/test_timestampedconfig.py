@@ -17,8 +17,7 @@ from creoconfig.exceptions import *
 
 import test_creoconfig
 
-# class TestCaseTimestampedConfig(test_creoconfig.TestCaseConfig):
-class TestCaseTimestampedConfig(unittest.TestCase):
+class TestCaseTimestampedConfig(test_creoconfig.TestCaseConfig):
 
     def setUp(self):
         self.cfg = TimestampedConfig
@@ -65,3 +64,27 @@ class TestCaseTimestampedConfig(unittest.TestCase):
         c.myval = 'somevalue'
         self.assertEqual(c.myval, 'somevalue')
         self.assertEqual(c.last_modified('myval'), input._mock_return_value)
+
+    @unittest.skip("these test since this config only returns strings")
+    def test_prompt_int_choices_ok(self):
+        pass
+
+    @unittest.skip("these test since this config only returns strings")
+    def test_prompt_int_dict_default(self):
+        pass
+
+    @unittest.skip("these test since this config only returns strings")
+    def test_prompt_int_dict_no_default(self):
+        pass
+
+    @unittest.skip("these test since this config only returns strings")
+    def test_prompt_int_attr_no_default(self):
+        pass
+
+    @unittest.skip("these test since this config only returns strings")
+    def test_prompt_int_attr_default(self):
+        pass
+
+
+
+

@@ -4,20 +4,12 @@ creoconfig
 Allows the central control and management of applications via
 a centralized configuration management system.
 """
-try:
-    """ReadLine will enhance the raw_input and allow history"""
-    import readline
-except ImportError:
-    pass
 import re
 import collections
 import configobject
-from exceptions import (
-    BatchModeUnableToPrompt,
-    TooManyRetries,
-    IllegalArgumentError
-)
+from exceptions import BatchModeUnableToPrompt
 from storagebackend import MemStorageBackend
+
 
 # This is a global environment settings attribute dictionary
 # it is used for storing all config information once read in.
@@ -197,10 +189,6 @@ class TimestampedConfig(Config):
         data = value.rsplit('::')
         print data
         return (data[0], int(data[1]))
-        # try:
-        #     return (data[0], int(data[1]))
-        # except IndexError:
-        #     return (data[0], None)
 
     def get(self, key, default=None):
         value = super(TimestampedConfig, self).get(key, default=None)

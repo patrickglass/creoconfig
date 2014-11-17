@@ -214,12 +214,12 @@ class TestCaseConfig(unittest.TestCase):
     @patch('__builtin__.raw_input', return_value=123)
     def test_prompt_int(self, input):
         c = self.cfg()
-        c.add_option('intkey', help='This is a int key', type=int)
+        c.add_option('intkey', type=int)
         c.prompt()
 
     def test_prompt_batchmode_enabled(self):
         c = self.cfg(batch=True)
-        c.add_option('intkey', help='This is a int key', type=int)
+        c.add_option('intkey', type=int)
         self.assertRaises(BatchModeUnableToPrompt, lambda: c.prompt())
         self.assertRaises(BatchModeUnableToPrompt, lambda: c.prompt())
 
@@ -291,6 +291,24 @@ class TestCaseConfig(unittest.TestCase):
         # self.assertRaises(KeyError, lambda: c['choice_key'])
         # self.assertTrue(c.prompt())
         self.assertEqual(c.choice_key, 2)
+
+    @patch('__builtin__.raw_input', return_value='ab')
+    def test_prompt_int_cast_failure(self, input):
+        c = self.cfg()
+        c.add_option('keyname', type=int)
+        self.assertRaises(TooManyRetries, lambda: c['keyname'])
+
+    @patch('__builtin__.raw_input', return_value='')
+    def test_prompt_empty_ans_no_default(self, input):
+        c = self.cfg()
+        c.add_option('keyname', type=int)
+        self.assertRaises(TooManyRetries, lambda: c['keyname'])
+
+    @patch('__builtin__.raw_input', return_value='')
+    def test_prompt_empty_ans_print_help(self, input):
+        c = self.cfg()
+        c.add_option('keyname', type=int, help='help string here')
+        self.assertRaises(TooManyRetries, lambda: c['keyname'])
 
 
 # class TestConfigOptionDefault(unittest.TestCase):

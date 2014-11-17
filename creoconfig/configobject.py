@@ -74,14 +74,14 @@ class ConfigObject(object):
             if self.retries < 0:
                     raise TooManyRetries("You can only select an option from the specified list! Exiting...")
 
+            self.retries -= 1
+
             # At the prompt entering '?' will print the help
             # for the item if available.
             if self.help and val == '':
                 print("Help for %s:\n\t%s" % (self.name, self.help))
             elif self.help and val == '?':
                 print("Help for %s:\n\t%s" % (self.name, self.help))
-            else:
-                self.retries -= 1
 
             # Responses must not be empty if a default is not set
             if val == '':
@@ -101,5 +101,3 @@ class ConfigObject(object):
             except ValueError:
                 print("Could not interpret your answer '%s' as %s. Please try again!" % (val, self.returntype))
                 continue
-            return val
-
