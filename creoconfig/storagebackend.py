@@ -56,9 +56,8 @@ class FileStorageBackend(MemStorageBackend):
         # print("INFO: Opening %s" % filename)
         # print("INFO: Data: %s" % str(self.store))
 
-    # def __del__(self):
-    #     # self.close()
-    #     pass
+    def __del__(self):
+        self.close()
 
     def close(self):
         return self.store.close()
