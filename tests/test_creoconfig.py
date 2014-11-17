@@ -18,8 +18,11 @@ from creoconfig.exceptions import *
 
 class TestCaseConfig(unittest.TestCase):
 
+    def setUp(self):
+        self.cfg = Config
+
     def test_options(self):
-        c = Config()
+        c = self.cfg()
         c.add_option('strkey', help='This is a string key')
         c.add_option('intkey', help='This is a int key', type=int)
         c.add_option('choice_key',
@@ -32,7 +35,7 @@ class TestCaseConfig(unittest.TestCase):
             choices=['a', 'b', 'c', '10'])
 
     def test_attr_set_get(self):
-        c = Config()
+        c = self.cfg()
         c.mykey = 'myvalue'
         self.assertEqual(c.mykey, 'myvalue')
         c['mykey'] = 'myvalue2'
@@ -41,7 +44,7 @@ class TestCaseConfig(unittest.TestCase):
         self.assertEqual(c['mykey'], 1234)
 
     def test_attr_set_alter_get(self):
-        c = Config()
+        c = self.cfg()
         c.mykey = 'myvalue'
         c.mykey2 = 'myvalue2'
         c.mykey3 = 'myvalue3'
@@ -58,7 +61,7 @@ class TestCaseConfig(unittest.TestCase):
 
 
     def test_dict_set_alter_get(self):
-        c = Config()
+        c = self.cfg()
         c['mykey'] = 'myvalue'
         self.assertEqual(c['mykey'], 'myvalue')
         c['mykey'] = 'myvalue2'
@@ -69,7 +72,7 @@ class TestCaseConfig(unittest.TestCase):
         self.assertEqual(c['mykey'], 1234)
 
     def test_dict_attr_set_alter_get(self):
-        c = Config()
+        c = self.cfg()
         c['mykey'] = 'myvalue'
         self.assertEqual(c['mykey'], 'myvalue')
         c.mykey = 'myvalue2'
@@ -80,14 +83,14 @@ class TestCaseConfig(unittest.TestCase):
         self.assertEqual(c['mykey'], 1234)
 
     def test_attr_missing(self):
-        c = Config(batch=True)
+        c = self.cfg(batch=True)
         self.assertRaises(AttributeError, getattr, c, 'mykey')
         # Users the class __call__ method
         # self.assertRaises(AttributeError, c, 'mykey')
         self.assertRaises(KeyError, lambda: c['mykey'])
 
     def test_delete_func(self):
-        c = Config(batch=True)
+        c = self.cfg(batch=True)
         c.mykey = 'myvalue'
         self.assertEqual(c.mykey, 'myvalue')
         delattr(c, 'mykey')
@@ -97,7 +100,7 @@ class TestCaseConfig(unittest.TestCase):
         self.assertRaises(KeyError, lambda: c['mykey'])
 
     def test_delete_func2(self):
-        c = Config(batch=True)
+        c = self.cfg(batch=True)
         c.mykey = 'myvalue'
         self.assertEqual(c.mykey, 'myvalue')
         del c.mykey
@@ -107,7 +110,7 @@ class TestCaseConfig(unittest.TestCase):
         self.assertRaises(KeyError, lambda: c['mykey'])
 
     def test_delete_dict(self):
-        c = Config(batch=True)
+        c = self.cfg(batch=True)
         c.mykey = 'myvalue'
         self.assertEqual(c.mykey, 'myvalue')
         del c['mykey']
@@ -117,7 +120,7 @@ class TestCaseConfig(unittest.TestCase):
         self.assertRaises(KeyError, lambda: c['mykey'])
 
     def test_delete_attr(self):
-        c = Config(batch=True)
+        c = self.cfg(batch=True)
         c.mykey = 'myvalue'
         self.assertEqual(c.mykey, 'myvalue')
         del c.mykey
@@ -128,12 +131,12 @@ class TestCaseConfig(unittest.TestCase):
 
     def test_sync_ok(self):
         """Config.sync() should not throw an error"""
-        c = Config()
+        c = self.cfg()
         c.sync()
 
     def test_batch_enable(self):
         """test_batch_enable - ensure we can enable batchmode if not set"""
-        c = Config()
+        c = self.cfg()
         print c.__dict__
         print c._store.__dict__
         self.assertFalse(c._isbatch)
@@ -144,13 +147,13 @@ class TestCaseConfig(unittest.TestCase):
 
     def test_batch_disable(self):
         """test_batch_disable - ensure we can disable batchmode if set"""
-        c = Config(batch=True)
+        c = self.cfg(batch=True)
         self.assertTrue(c._isbatch)
         c.disable_batch()
         self.assertFalse(c._isbatch)
 
     def test_erase_all(self):
-        c = Config()
+        c = self.cfg()
         c.mykey = 'myvalue'
         c.mykey2 = 'myvalue2'
         c.mykey3 = 'myvalue3'
@@ -169,7 +172,7 @@ class TestCaseConfig(unittest.TestCase):
         self.assertEqual(len(c), 1)
 
     def test_len(self):
-        c = Config()
+        c = self.cfg()
         self.assertEqual(len(c), 0)
         c.mykey = 'myvalue'
         self.assertEqual(len(c), 1)
@@ -192,27 +195,31 @@ class TestCaseConfig(unittest.TestCase):
 
 class TestWizardPrompt(unittest.TestCase):
 
+    def setUp(self):
+        """Set the class to use for all testcases"""
+        self.cfg = Config
+
     @patch('creoconfig.configobject.prompt_user', return_value='yes')
     def test_prompt_string(self, input):
-        c = Config()
+        c = self.cfg()
         c.add_option('strkey', help='This is a string key')
         c.prompt()
 
     @patch('creoconfig.configobject.prompt_user', return_value=123)
     def test_prompt_int(self, input):
-        c = Config()
+        c = self.cfg()
         c.add_option('intkey', help='This is a int key', type=int)
         c.prompt()
 
     def test_prompt_batchmode_enabled(self):
-        c = Config(batch=True)
+        c = self.cfg(batch=True)
         c.add_option('intkey', help='This is a int key', type=int)
         self.assertRaises(BatchModeUnableToPrompt, lambda: c.prompt())
         self.assertRaises(BatchModeUnableToPrompt, lambda: c.prompt())
 
     @patch('creoconfig.configobject.prompt_user', return_value='abc')
     def test_prompt_batchmode_enabled_disabled(self, input):
-        c = Config(batch=True)
+        c = self.cfg(batch=True)
         c.add_option('strkey', help='This is a string key')
         self.assertRaises(BatchModeUnableToPrompt, lambda: c.prompt())
         self.assertRaises(BatchModeUnableToPrompt, lambda: c.prompt())
@@ -225,7 +232,7 @@ class TestWizardPrompt(unittest.TestCase):
 
     @patch('creoconfig.configobject.prompt_user', return_value=123)
     def test_prompt_int_choices_bad(self, input):
-        c = Config()
+        c = self.cfg()
         c.add_option('choice_key',
             help='This is a int key which only allows certail values',
             type=int,
@@ -234,7 +241,7 @@ class TestWizardPrompt(unittest.TestCase):
 
     @patch('creoconfig.configobject.prompt_user', return_value='123')
     def test_prompt_string_choices_bad(self, input):
-        c = Config()
+        c = self.cfg()
         c.add_option('choice_key',
             help='This is a int key which only allows certail values',
             type=str,
@@ -243,7 +250,7 @@ class TestWizardPrompt(unittest.TestCase):
 
     @patch('creoconfig.configobject.prompt_user', return_value='ab')
     def test_prompt_string_choices_ok(self, input):
-        c = Config()
+        c = self.cfg()
         c.add_option('choice_key',
             help='This is a int key which only allows certail values',
             type=str,
@@ -254,7 +261,7 @@ class TestWizardPrompt(unittest.TestCase):
 
     @patch('creoconfig.configobject.prompt_user', return_value='ab')
     def test_prompt_int_type_error(self, input):
-        c = Config()
+        c = self.cfg()
         self.assertRaises(IllegalArgumentError,
             c.add_option,
             'choice_key',
@@ -264,7 +271,7 @@ class TestWizardPrompt(unittest.TestCase):
 
     @patch('creoconfig.configobject.prompt_user', return_value='2')
     def test_prompt_int_choices_ok(self, input):
-        c = Config()
+        c = self.cfg()
         c.add_option('choice_key',
             help='This is a int key which only allows certail values',
             type=int,
@@ -277,99 +284,110 @@ class TestWizardPrompt(unittest.TestCase):
 
 class TestConfigOptionDefault(unittest.TestCase):
 
+    def setUp(self):
+        """Set the class to use for all testcases"""
+        self.cfg = Config
+
     def test_default_type_match_int(self):
-        c = Config()
+        c = self.cfg()
         self.assertTrue(c.add_option('keyname', type=int, default=234))
 
     def test_default_type_mismatch_int(self):
-        c = Config()
+        c = self.cfg()
         self.assertRaises(IllegalArgumentError, c.add_option, 'keyname', type=int, default='32')
 
     def test_default_type_mismatch_int2(self):
-        c = Config()
+        c = self.cfg()
         self.assertRaises(IllegalArgumentError, c.add_option, 'keyname', type=int, default=354.545)
 
     def test_default_type_match_float(self):
-        c = Config()
+        c = self.cfg()
         self.assertTrue(c.add_option('keyname', type=float, default=0.0))
 
     def test_default_type_mismatch_float(self):
-        c = Config()
+        c = self.cfg()
         self.assertRaises(IllegalArgumentError, c.add_option, 'keyname', type=float, default='354.545')
 
     def test_default_type_mismatch_float2(self):
-        c = Config()
+        c = self.cfg()
         self.assertRaises(IllegalArgumentError, c.add_option, 'keyname', type=float, default=354)
 
     def test_default_type_match_str(self):
-        c = Config()
+        c = self.cfg()
         self.assertTrue(c.add_option('keyname', type=str, default='234'))
 
     def test_default_type_match_str2(self):
-        c = Config()
+        c = self.cfg()
         self.assertTrue(c.add_option('keyname', type=str, default=' spaces everywhere   '))
 
     def test_default_type_mismatch_str(self):
-        c = Config()
+        c = self.cfg()
         self.assertRaises(IllegalArgumentError, c.add_option, 'keyname', type=str, default=354.545)
 
 
 class TestConfigOptionChoices(unittest.TestCase):
 
+    def setUp(self):
+        """Set the class to use for all testcases"""
+        self.cfg = Config
+
     def test_choice_type_match_int(self):
-        c = Config()
+        c = self.cfg()
         self.assertTrue(c.add_option('keyname', type=int, choices=[234, 1]))
 
     def test_choice_type_match_single_int(self):
-        c = Config()
+        c = self.cfg()
         self.assertRaises(TypeError, c.add_option, 'keyname', type=int, choices=234)
 
     def test_choice_type_mismatch_int(self):
-        c = Config()
+        c = self.cfg()
         self.assertRaises(IllegalArgumentError, c.add_option, 'keyname', type=int, choices=['32', 'asb'])
 
     def test_choice_type_mismatch_int2(self):
-        c = Config()
+        c = self.cfg()
         self.assertRaises(IllegalArgumentError, c.add_option, 'keyname', type=int, choices=[354.545])
 
     def test_choice_type_match_float(self):
-        c = Config()
+        c = self.cfg()
         self.assertTrue(c.add_option('keyname', type=float, choices=[0.0]))
 
     def test_choice_type_match_single_float(self):
-        c = Config()
+        c = self.cfg()
         self.assertRaises(TypeError, c.add_option, 'keyname', type=float, choices=234.0)
 
     def test_choice_type_mismatch_float(self):
-        c = Config()
+        c = self.cfg()
         self.assertRaises(IllegalArgumentError, c.add_option, 'keyname', type=float, choices=['354.545'])
 
     def test_choice_type_mismatch_float2(self):
-        c = Config()
+        c = self.cfg()
         self.assertRaises(IllegalArgumentError, c.add_option, 'keyname', type=float, choices=[354])
 
     def test_choice_type_match_single_string(self):
-        c = Config()
+        c = self.cfg()
         self.assertRaises(IllegalArgumentError, c.add_option, 'keyname', type=str, choices="BadChoice")
 
     def test_choice_type_match_str(self):
-        c = Config()
+        c = self.cfg()
         self.assertTrue(c.add_option('keyname', type=str, choices=['234']))
 
     def test_choice_type_match_str2(self):
-        c = Config()
+        c = self.cfg()
         self.assertTrue(c.add_option('keyname', type=str, choices=[' spaces everywhere   ']))
 
     def test_choice_type_mismatch_str(self):
-        c = Config()
+        c = self.cfg()
         self.assertRaises(IllegalArgumentError, c.add_option, 'keyname', type=str, choices=[354.545])
 
 
 class TestConfigOptionAutoPrompt(unittest.TestCase):
 
+    def setUp(self):
+        self.cfg = Config
+
     @patch('creoconfig.configobject.prompt_user', return_value='2')
     def test_prompt_int_dict_default(self, input):
-        c = Config()
+        c = self.cfg()
         c.add_option('choice_key',
             type=int,
             default=2)
@@ -377,7 +395,7 @@ class TestConfigOptionAutoPrompt(unittest.TestCase):
 
     @patch('creoconfig.configobject.prompt_user', return_value='2')
     def test_prompt_int_attr_default(self, input):
-        c = Config()
+        c = self.cfg()
         c.add_option('choice_key',
             type=int,
             default=2)
@@ -385,28 +403,28 @@ class TestConfigOptionAutoPrompt(unittest.TestCase):
 
     @patch('creoconfig.configobject.prompt_user', return_value='2')
     def test_prompt_int_dict_no_default(self, input):
-        c = Config()
+        c = self.cfg()
         c.add_option('choice_key',
             type=int)
         self.assertEqual(c['choice_key'], 2)
 
     @patch('creoconfig.configobject.prompt_user', return_value='2')
     def test_prompt_int_attr_no_default(self, input):
-        c = Config()
+        c = self.cfg()
         c.add_option('choice_key',
             type=int)
         self.assertEqual(c.choice_key, 2)
 
     @patch('creoconfig.configobject.prompt_user', return_value='2')
     def test_prompt_int_dict_batch_no_default(self, input):
-        c = Config(batch=True)
+        c = self.cfg(batch=True)
         c.add_option('choice_key',
             type=int)
         self.assertRaises(KeyError, lambda: c['mykey'])
 
     @patch('creoconfig.configobject.prompt_user', return_value='2')
     def test_prompt_int_attr_batch_no_default(self, input):
-        c = Config(batch=True)
+        c = self.cfg(batch=True)
         c.add_option('choice_key',
             type=int)
         self.assertRaises(AttributeError, getattr, c, 'mykey')
@@ -415,6 +433,8 @@ class TestConfigOptionAutoPrompt(unittest.TestCase):
 class TestConfigFileBackend(unittest.TestCase):
 
     def setUp(self):
+        """Set the class to use for all testcases"""
+        self.cfg = Config
         self.files = []
 
     def gen_new_filename(self, base='tmp_%s.cfg'):
@@ -427,14 +447,14 @@ class TestConfigFileBackend(unittest.TestCase):
     def test_sync_ok(self):
         """Config.sync() should not throw an exception"""
         s = FileStorageBackend(self.gen_new_filename())
-        c = Config(backend=s)
+        c = self.cfg(backend=s)
         c.sync()
 
     @unittest.skip("not working")
     def test_file_persistance_context(self):
         f = self.gen_new_filename()
         def create_data():
-            c = Config(backend=FileStorageBackend(f))
+            c = self.cfg(backend=FileStorageBackend(f))
             self.assertRaises(AttributeError, getattr, c, 'mykey')
             c.mykey = 'myvalue'
             c.keytodelete = 'secretvalue'
@@ -446,7 +466,7 @@ class TestConfigFileBackend(unittest.TestCase):
             self.assertEqual(c.anotherkey, 'someothervalue')
         create_data()
         # Now recreate the Config and check if value is taken
-        c = Config(backend=FileStorageBackend(f, flag='w'))
+        c = self.cfg(backend=FileStorageBackend(f, flag='w'))
         print c._store.__dict__
         print c['mykey']
         self.assertEqual(c.mykey, 'myvalue')
@@ -464,7 +484,7 @@ class TestConfigFileBackend(unittest.TestCase):
     def test_file_persistance_with_close(self):
         f = self.gen_new_filename()
         store = FileStorageBackend(f)
-        c = Config(store)
+        c = self.cfg(store)
         self.assertRaises(AttributeError, getattr, c, 'mykey')
         c.mykey = 'myvalue'
         c.keytodelete = 'secretvalue'
@@ -483,8 +503,8 @@ class TestConfigFileBackend(unittest.TestCase):
         # Now recreate the Config and check if value is taken
         # we dont want to auto create file if it does not exists.
         # FIXME: TESTING WITH SHARED BACKEND
-        # c = Config(FileStorageBackend(f, flag='w'))
-        c = Config(store)
+        # c = self.cfg(FileStorageBackend(f, flag='w'))
+        c = self.cfg(store)
         print c._store.__dict__
         self.assertEqual(c.mykey, 'myvalue')
         self.assertEqual(c.keytodelete, 'secretvalue')
@@ -504,7 +524,7 @@ class TestConfigFileBackend(unittest.TestCase):
     def test_file_persistance_configparser(self):
         f = self.gen_new_filename()
         store = ConfigParserStorageBackend(f)
-        c = Config(store)
+        c = self.cfg(store)
         self.assertRaises(AttributeError, getattr, c, 'mykey')
         c.mykey = 'myvalue'
         c.keytodelete = 'secretvalue'
@@ -523,8 +543,8 @@ class TestConfigFileBackend(unittest.TestCase):
         # Now recreate the Config and check if value is taken
         # we dont want to auto create file if it does not exists.
         # FIXME: TESTING WITH SHARED BACKEND
-        # c = Config(FileStorageBackend(f, flag='w'))
-        c = Config(store)
+        # c = self.cfg(FileStorageBackend(f, flag='w'))
+        c = self.cfg(store)
         print c._store.__dict__
         self.assertEqual(c.mykey, 'myvalue')
         self.assertEqual(c.keytodelete, 'secretvalue')

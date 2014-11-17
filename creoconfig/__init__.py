@@ -2,7 +2,7 @@
 creoconfig
 """
 import exceptions
-from config import Config
+from config import Config, TimestampedConfig
 from storagebackend import (
     MemStorageBackend,
     FileStorageBackend,
