@@ -19,16 +19,6 @@ from exceptions import (
 from storagebackend import MemStorageBackend
 
 
-def prompt_user(*args, **kwargs):
-    """
-    Read a string from standard input.  The trailing newline is stripped.
-    If the user hits EOF (Unix: Ctl-D, Windows: Ctl-Z+Return), raise EOFError.
-    On Unix, GNU readline is used if enabled.  The prompt string, if given,
-    is printed without a trailing newline before reading.
-    """
-    return raw_input(*args, **kwargs)
-
-
 class ConfigObject(object):
     """
     Stores all the information about a variable. This is used to
@@ -79,7 +69,7 @@ class ConfigObject(object):
         self.msg += ': '
 
         while True:
-            val = prompt_user(self.msg)
+            val = raw_input(self.msg)
 
             if self.retries < 0:
                     raise TooManyRetries("You can only select an option from the specified list! Exiting...")

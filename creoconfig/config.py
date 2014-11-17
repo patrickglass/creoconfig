@@ -92,8 +92,6 @@ class Config(collections.MutableMapping):
             TooManyRetries: When prompted user is unable to enter in
                 a valid value based on `add_option` specifications.
         """
-        print("INFO: Config.get(%s, default=%s)" % (key, default))
-        print("INFO: Config Dict: %s" % str(self._store.__dict__))
         try:
             val = self._store.get(key)
         except KeyError:
@@ -103,27 +101,27 @@ class Config(collections.MutableMapping):
         return val
 
     def __getitem__(self, key):
-        print("INFO: Config.__getitem__(%s)" % key)
+        # print("INFO: Config.__getitem__(%s)" % key)
         return self.get(key)
 
     def __getattr__(self, key):
         """__get_attr__ will raise the correct exception if key is not found"""
-        print("INFO: Config.__getattr__(%s)" % key)
+        # print("INFO: Config.__getattr__(%s)" % key)
         try:
             return self.get(key)
         except KeyError, msg:
             raise AttributeError(msg)
 
     def _set(self, key, value):
-        print("INFO: Config.set(%s, %s)" % (key, value))
-        return self._store.set(key, value)
+        # print("INFO: Config.set(%s, %s)" % (key, value))
+        return self._store.set(key, str(value))
 
     def __setitem__(self, key, value):
-        print("INFO: Config.__setitem__(%s, %s)" % (key, value))
+        # print("INFO: Config.__setitem__(%s, %s)" % (key, value))
         return self._set(key, value)
 
     def __setattr__(self, key, value):
-        print("INFO: Config.__setattr__(%s, %s)" % (key, value))
+        # print("INFO: Config.__setattr__(%s, %s)" % (key, value))
         return self._set(key, value)
 
     def __iter__(self):
@@ -185,28 +183,34 @@ import time
 import calendar
 class TimestampedConfig(Config):
 
-    # def __init__(self, *args, **kwargs):
-    #     sep = kwargs.pop('separator', '::')
-    #     super(TimestampedConfig, self).__setattr__('_separator', sep)
+    def __init__(self, *args, **kwargs):
+        sep = kwargs.pop('separator', '::')
+        super(Config, self).__setattr__('_separator', sep)
+        super(TimestampedConfig, self).__init__(*args, **kwargs)
 
     def _gen_value(self, value, timestamp=None):
         t = calendar.timegm(time.gmtime(timestamp))
-        print("INFO: time.gmtime returned %s" % t)
         return str(value) + '::' + str(t)
 
     def _extract_value(self, value):
         """returns a tuple of (value, timestamp)"""
         data = value.rsplit('::')
+        print data
         return (data[0], int(data[1]))
+        # try:
+        #     return (data[0], int(data[1]))
+        # except IndexError:
+        #     return (data[0], None)
 
-    # def get(self, key, default=None):
-    #     return super(TimestampedConfig, self).get(key, default=None)
+    def get(self, key, default=None):
+        value = super(TimestampedConfig, self).get(key, default=None)
+        return self._extract_value(str(value))[0]
 
     def _set(self, key, value, timestamp=None):
         value = self._gen_value(value, timestamp)
-        print("INFO: TimestampedConfig.set(%s, %s)" % (key, value))
         return super(TimestampedConfig, self)._set(key, value)
 
     def last_modified(self, key):
         """Returns the last time the key was modified"""
-        pass
+        value = super(TimestampedConfig, self).get(key, default=None)
+        return self._extract_value(value)[1]

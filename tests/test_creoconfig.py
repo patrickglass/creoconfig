@@ -42,7 +42,7 @@ class TestCaseConfig(unittest.TestCase):
         c['mykey'] = 'myvalue2'
         self.assertEqual(c.mykey, 'myvalue2')
         c.mykey = 1234
-        self.assertEqual(c['mykey'], 1234)
+        self.assertEqual(c['mykey'], '1234')
 
     def test_attr_set_alter_get(self):
         c = self.cfg()
@@ -58,7 +58,7 @@ class TestCaseConfig(unittest.TestCase):
         c.mykey = 'myvalue3'
         self.assertEqual(c.mykey, 'myvalue3')
         c.mykey = 1234
-        self.assertEqual(c['mykey'], 1234)
+        self.assertEqual(c['mykey'], '1234')
 
 
     def test_dict_set_alter_get(self):
@@ -70,7 +70,7 @@ class TestCaseConfig(unittest.TestCase):
         c['mykey'] = 'myvalue3'
         self.assertEqual(c['mykey'], 'myvalue3')
         c['mykey'] = 1234
-        self.assertEqual(c['mykey'], 1234)
+        self.assertEqual(c['mykey'], '1234')
 
     def test_dict_attr_set_alter_get(self):
         c = self.cfg()
@@ -81,7 +81,7 @@ class TestCaseConfig(unittest.TestCase):
         c['mykey'] = 'myvalue3'
         self.assertEqual(c['mykey'], 'myvalue3')
         c.mykey = 1234
-        self.assertEqual(c['mykey'], 1234)
+        self.assertEqual(c['mykey'], '1234')
 
     def test_attr_missing(self):
         c = self.cfg(batch=True)
@@ -199,19 +199,19 @@ class TestCaseConfig(unittest.TestCase):
         self.assertEqual(len(c), 0)
 
 
-class TestWizardPrompt(unittest.TestCase):
+# class TestWizardPrompt(unittest.TestCase):
 
-    def setUp(self):
-        """Set the class to use for all testcases"""
-        self.cfg = Config
+#     def setUp(self):
+#         """Set the class to use for all testcases"""
+#         self.cfg = Config
 
-    @patch('creoconfig.configobject.prompt_user', return_value='yes')
+    @patch('__builtin__.raw_input', return_value='yes')
     def test_prompt_string(self, input):
         c = self.cfg()
         c.add_option('strkey', help='This is a string key')
         c.prompt()
 
-    @patch('creoconfig.configobject.prompt_user', return_value=123)
+    @patch('__builtin__.raw_input', return_value=123)
     def test_prompt_int(self, input):
         c = self.cfg()
         c.add_option('intkey', help='This is a int key', type=int)
@@ -223,7 +223,12 @@ class TestWizardPrompt(unittest.TestCase):
         self.assertRaises(BatchModeUnableToPrompt, lambda: c.prompt())
         self.assertRaises(BatchModeUnableToPrompt, lambda: c.prompt())
 
-    @patch('creoconfig.configobject.prompt_user', return_value='abc')
+    def test_prompt_batchmode_enabled_with_default(self):
+        c = self.cfg(batch=True)
+        c.add_option('keyname', type=str, default='someval')
+        self.assertEqual(c.keyname, 'someval')
+
+    @patch('__builtin__.raw_input', return_value='abc')
     def test_prompt_batchmode_enabled_disabled(self, input):
         c = self.cfg(batch=True)
         c.add_option('strkey', help='This is a string key')
@@ -236,7 +241,7 @@ class TestWizardPrompt(unittest.TestCase):
         self.assertTrue(c.prompt())
         self.assertEquals(c.strkey, 'abc')
 
-    @patch('creoconfig.configobject.prompt_user', return_value=123)
+    @patch('__builtin__.raw_input', return_value=123)
     def test_prompt_int_choices_bad(self, input):
         c = self.cfg()
         c.add_option('choice_key',
@@ -245,7 +250,7 @@ class TestWizardPrompt(unittest.TestCase):
             choices=[1, 2, 3, 10])
         self.assertRaises(TooManyRetries, lambda: c.prompt())
 
-    @patch('creoconfig.configobject.prompt_user', return_value='123')
+    @patch('__builtin__.raw_input', return_value='123')
     def test_prompt_string_choices_bad(self, input):
         c = self.cfg()
         c.add_option('choice_key',
@@ -254,7 +259,7 @@ class TestWizardPrompt(unittest.TestCase):
             choices=['1', '2', '3', '10'])
         self.assertRaises(TooManyRetries, lambda: c.prompt())
 
-    @patch('creoconfig.configobject.prompt_user', return_value='ab')
+    @patch('__builtin__.raw_input', return_value='ab')
     def test_prompt_string_choices_ok(self, input):
         c = self.cfg()
         c.add_option('choice_key',
@@ -265,7 +270,7 @@ class TestWizardPrompt(unittest.TestCase):
         self.assertTrue(c.prompt())
         self.assertEqual(c.choice_key, 'ab')
 
-    @patch('creoconfig.configobject.prompt_user', return_value='ab')
+    @patch('__builtin__.raw_input', return_value='ab')
     def test_prompt_int_type_error(self, input):
         c = self.cfg()
         self.assertRaises(IllegalArgumentError,
@@ -275,7 +280,7 @@ class TestWizardPrompt(unittest.TestCase):
             type=int,
             choices=[1, 'string', 'a', 'abcd', 'ab', 'abc'])
 
-    @patch('creoconfig.configobject.prompt_user', return_value='2')
+    @patch('__builtin__.raw_input', return_value='2')
     def test_prompt_int_choices_ok(self, input):
         c = self.cfg()
         c.add_option('choice_key',
@@ -288,54 +293,63 @@ class TestWizardPrompt(unittest.TestCase):
         self.assertEqual(c.choice_key, 2)
 
 
-class TestConfigOptionDefault(unittest.TestCase):
+# class TestConfigOptionDefault(unittest.TestCase):
 
-    def setUp(self):
-        """Set the class to use for all testcases"""
-        self.cfg = Config
+#     def setUp(self):
+#         """Set the class to use for all testcases"""
+#         self.cfg = Config
 
     def test_default_type_match_int(self):
         c = self.cfg()
         self.assertTrue(c.add_option('keyname', type=int, default=234))
+        # self.assertEqual(c.keyname, '234')
 
     def test_default_type_mismatch_int(self):
         c = self.cfg()
         self.assertRaises(IllegalArgumentError, c.add_option, 'keyname', type=int, default='32')
+        # self.assertEqual(c.keyname, '32')
 
     def test_default_type_mismatch_int2(self):
         c = self.cfg()
         self.assertRaises(IllegalArgumentError, c.add_option, 'keyname', type=int, default=354.545)
+        # self.assertEqual(c.keyname, '354.545')
 
     def test_default_type_match_float(self):
         c = self.cfg()
         self.assertTrue(c.add_option('keyname', type=float, default=0.0))
+        # self.assertEqual(c.keyname, '0.0')
 
     def test_default_type_mismatch_float(self):
         c = self.cfg()
         self.assertRaises(IllegalArgumentError, c.add_option, 'keyname', type=float, default='354.545')
+        # self.assertEqual(c.keyname, '354.545')
 
     def test_default_type_mismatch_float2(self):
         c = self.cfg()
         self.assertRaises(IllegalArgumentError, c.add_option, 'keyname', type=float, default=354)
+        # self.assertEqual(c.keyname, '354')
 
     def test_default_type_match_str(self):
         c = self.cfg()
         self.assertTrue(c.add_option('keyname', type=str, default='234'))
+        # self.assertEqual(c.keyname, '234')
 
     def test_default_type_match_str2(self):
         c = self.cfg()
         self.assertTrue(c.add_option('keyname', type=str, default=' spaces everywhere   '))
+        # self.assertEqual(c.keyname, ' spaces everywhere   ')
 
     def test_default_type_mismatch_str(self):
         c = self.cfg()
         self.assertRaises(IllegalArgumentError, c.add_option, 'keyname', type=str, default=354.545)
+        # self.assertEqual(c.keyname, '354.545')
 
 
-class TestConfigBackendOverride(unittest.TestCase):
+# class TestConfigBackendOverride(unittest.TestCase):
 
-    def setUp(self):
-        """Set the class to use for all testcases"""
-        self.cfg = Config
+#     def setUp(self):
+#         """Set the class to use for all testcases"""
+#         self.cfg = Config
 
     def test_mem(self):
         backend = MemStorageBackend()
@@ -358,11 +372,11 @@ class TestConfigBackendOverride(unittest.TestCase):
         self.assertIsInstance(c._store, ConfigParserStorageBackend)
 
 
-class TestConfigOptionChoices(unittest.TestCase):
+# class TestConfigOptionChoices(unittest.TestCase):
 
-    def setUp(self):
-        """Set the class to use for all testcases"""
-        self.cfg = Config
+#     def setUp(self):
+#         """Set the class to use for all testcases"""
+#         self.cfg = Config
 
     def test_choice_type_match_int(self):
         c = self.cfg()
@@ -413,12 +427,12 @@ class TestConfigOptionChoices(unittest.TestCase):
         self.assertRaises(IllegalArgumentError, c.add_option, 'keyname', type=str, choices=[354.545])
 
 
-class TestConfigOptionAutoPrompt(unittest.TestCase):
+# class TestConfigOptionAutoPrompt(unittest.TestCase):
 
-    def setUp(self):
-        self.cfg = Config
+#     def setUp(self):
+#         self.cfg = Config
 
-    @patch('creoconfig.configobject.prompt_user', return_value='2')
+    @patch('__builtin__.raw_input', return_value='2')
     def test_prompt_int_dict_default(self, input):
         c = self.cfg()
         c.add_option('choice_key',
@@ -426,7 +440,7 @@ class TestConfigOptionAutoPrompt(unittest.TestCase):
             default=2)
         self.assertEqual(c['choice_key'], 2)
 
-    @patch('creoconfig.configobject.prompt_user', return_value='2')
+    @patch('__builtin__.raw_input', return_value='2')
     def test_prompt_int_attr_default(self, input):
         c = self.cfg()
         c.add_option('choice_key',
@@ -434,28 +448,28 @@ class TestConfigOptionAutoPrompt(unittest.TestCase):
             default=2)
         self.assertEqual(c.choice_key, 2)
 
-    @patch('creoconfig.configobject.prompt_user', return_value='2')
+    @patch('__builtin__.raw_input', return_value='2')
     def test_prompt_int_dict_no_default(self, input):
         c = self.cfg()
         c.add_option('choice_key',
             type=int)
         self.assertEqual(c['choice_key'], 2)
 
-    @patch('creoconfig.configobject.prompt_user', return_value='2')
+    @patch('__builtin__.raw_input', return_value='2')
     def test_prompt_int_attr_no_default(self, input):
         c = self.cfg()
         c.add_option('choice_key',
             type=int)
         self.assertEqual(c.choice_key, 2)
 
-    @patch('creoconfig.configobject.prompt_user', return_value='2')
+    @patch('__builtin__.raw_input', return_value='2')
     def test_prompt_int_dict_batch_no_default(self, input):
         c = self.cfg(batch=True)
         c.add_option('choice_key',
             type=int)
         self.assertRaises(KeyError, lambda: c['mykey'])
 
-    @patch('creoconfig.configobject.prompt_user', return_value='2')
+    @patch('__builtin__.raw_input', return_value='2')
     def test_prompt_int_attr_batch_no_default(self, input):
         c = self.cfg(batch=True)
         c.add_option('choice_key',

@@ -12,7 +12,7 @@ import os
 import base64
 import unittest
 from mock import patch
-from creoconfig.config import TimestampedConfig
+from creoconfig.configtimestamped import TimestampedConfig
 from creoconfig.exceptions import *
 
 import test_creoconfig
@@ -22,11 +22,6 @@ class TestCaseTimestampedConfig(unittest.TestCase):
 
     def setUp(self):
         self.cfg = TimestampedConfig
-
-    # @patch('creoconfig.config.TimestampedConfig._timestamp', return_value=1400000000)
-    # def test_timestamp_gen(self, input):
-    #     c = self.cfg()
-    #     self.assertEqual(c._timestamp(), input._mock_return_value)
 
     @patch('creoconfig.config.calendar.timegm', return_value=1400000000)
     def test_gen_value(self, input):
@@ -64,13 +59,9 @@ class TestCaseTimestampedConfig(unittest.TestCase):
         val = c._gen_value('myvalue2')
         self.assertEqual(c._extract_value(val), ('myvalue2', 1500000000))
 
-    # @patch('creoconfig.config.TimestampedConfig.calendar.timegm', return_value='100000')
-    # def test_last_modified(self):
-    #     self.cfg.set('myval', 'somevalue')
-    #     self.cfg.last_mofified('myval')
-
-    # @patch('creoconfig.config.TimestampedConfig.calendar.timegm', return_value='1000001')
-    # def test_gen_value(self):
-    #     c = self.cfg()
-    #     self.assertEqual(c._gen_value('teststr'), 'teststr::100000')
-
+    @patch('creoconfig.config.calendar.timegm', return_value=1300000001)
+    def test_last_modified(self, input):
+        c = self.cfg()
+        c.myval = 'somevalue'
+        self.assertEqual(c.myval, 'somevalue')
+        self.assertEqual(c.last_modified('myval'), input._mock_return_value)
