@@ -191,13 +191,13 @@ class TestCaseConfig(unittest.TestCase):
 
 class TestWizardPrompt(unittest.TestCase):
 
-    @patch('creoconfig.config.prompt_user', return_value='yes')
+    @patch('creoconfig.configobject.prompt_user', return_value='yes')
     def test_prompt_string(self, input):
         c = Config()
         c.add_option('strkey', help='This is a string key')
         c.prompt()
 
-    @patch('creoconfig.config.prompt_user', return_value=123)
+    @patch('creoconfig.configobject.prompt_user', return_value=123)
     def test_prompt_int(self, input):
         c = Config()
         c.add_option('intkey', help='This is a int key', type=int)
@@ -209,7 +209,7 @@ class TestWizardPrompt(unittest.TestCase):
         self.assertRaises(BatchModeUnableToPrompt, lambda: c.prompt())
         self.assertRaises(BatchModeUnableToPrompt, lambda: c.prompt())
 
-    @patch('creoconfig.config.prompt_user', return_value='abc')
+    @patch('creoconfig.configobject.prompt_user', return_value='abc')
     def test_prompt_batchmode_enabled_disabled(self, input):
         c = Config(batch=True)
         c.add_option('strkey', help='This is a string key')
@@ -222,7 +222,7 @@ class TestWizardPrompt(unittest.TestCase):
         self.assertTrue(c.prompt())
         self.assertEquals(c.strkey, 'abc')
 
-    @patch('creoconfig.config.prompt_user', return_value=123)
+    @patch('creoconfig.configobject.prompt_user', return_value=123)
     def test_prompt_int_choices_bad(self, input):
         c = Config()
         c.add_option('choice_key',
@@ -231,7 +231,7 @@ class TestWizardPrompt(unittest.TestCase):
             choices=[1, 2, 3, 10])
         self.assertRaises(TooManyRetries, lambda: c.prompt())
 
-    @patch('creoconfig.config.prompt_user', return_value='123')
+    @patch('creoconfig.configobject.prompt_user', return_value='123')
     def test_prompt_string_choices_bad(self, input):
         c = Config()
         c.add_option('choice_key',
@@ -240,7 +240,7 @@ class TestWizardPrompt(unittest.TestCase):
             choices=['1', '2', '3', '10'])
         self.assertRaises(TooManyRetries, lambda: c.prompt())
 
-    @patch('creoconfig.config.prompt_user', return_value='ab')
+    @patch('creoconfig.configobject.prompt_user', return_value='ab')
     def test_prompt_string_choices_ok(self, input):
         c = Config()
         c.add_option('choice_key',
@@ -251,7 +251,7 @@ class TestWizardPrompt(unittest.TestCase):
         self.assertTrue(c.prompt())
         self.assertEqual(c.choice_key, 'ab')
 
-    @patch('creoconfig.config.prompt_user', return_value='ab')
+    @patch('creoconfig.configobject.prompt_user', return_value='ab')
     def test_prompt_int_type_error(self, input):
         c = Config()
         self.assertRaises(IllegalArgumentError,
@@ -261,7 +261,7 @@ class TestWizardPrompt(unittest.TestCase):
             type=int,
             choices=[1, 'string', 'a', 'abcd', 'ab', 'abc'])
 
-    @patch('creoconfig.config.prompt_user', return_value='2')
+    @patch('creoconfig.configobject.prompt_user', return_value='2')
     def test_prompt_int_choices_ok(self, input):
         c = Config()
         c.add_option('choice_key',
@@ -366,7 +366,7 @@ class TestConfigOptionChoices(unittest.TestCase):
 
 class TestConfigOptionAutoPrompt(unittest.TestCase):
 
-    @patch('creoconfig.config.prompt_user', return_value='2')
+    @patch('creoconfig.configobject.prompt_user', return_value='2')
     def test_prompt_int_dict_default(self, input):
         c = Config()
         c.add_option('choice_key',
@@ -374,7 +374,7 @@ class TestConfigOptionAutoPrompt(unittest.TestCase):
             default=2)
         self.assertEqual(c['choice_key'], 2)
 
-    @patch('creoconfig.config.prompt_user', return_value='2')
+    @patch('creoconfig.configobject.prompt_user', return_value='2')
     def test_prompt_int_attr_default(self, input):
         c = Config()
         c.add_option('choice_key',
@@ -382,28 +382,28 @@ class TestConfigOptionAutoPrompt(unittest.TestCase):
             default=2)
         self.assertEqual(c.choice_key, 2)
 
-    @patch('creoconfig.config.prompt_user', return_value='2')
+    @patch('creoconfig.configobject.prompt_user', return_value='2')
     def test_prompt_int_dict_no_default(self, input):
         c = Config()
         c.add_option('choice_key',
             type=int)
         self.assertEqual(c['choice_key'], 2)
 
-    @patch('creoconfig.config.prompt_user', return_value='2')
+    @patch('creoconfig.configobject.prompt_user', return_value='2')
     def test_prompt_int_attr_no_default(self, input):
         c = Config()
         c.add_option('choice_key',
             type=int)
         self.assertEqual(c.choice_key, 2)
 
-    @patch('creoconfig.config.prompt_user', return_value='2')
+    @patch('creoconfig.configobject.prompt_user', return_value='2')
     def test_prompt_int_dict_batch_no_default(self, input):
         c = Config(batch=True)
         c.add_option('choice_key',
             type=int)
         self.assertRaises(KeyError, lambda: c['mykey'])
 
-    @patch('creoconfig.config.prompt_user', return_value='2')
+    @patch('creoconfig.configobject.prompt_user', return_value='2')
     def test_prompt_int_attr_batch_no_default(self, input):
         c = Config(batch=True)
         c.add_option('choice_key',
