@@ -19,7 +19,7 @@ class Config(collections.MutableMapping):
     it is used for storing all config information once read in.
     """
 
-    def __init__(self, backend=None, batch=False, *args, **kwargs):
+    def __init__(self, defaults={}, backend=None, batch=False, *args, **kwargs):
         """Defined the config variables and their validation methods"""
         if backend is None:
             backend = MemStorageBackend()
@@ -29,6 +29,10 @@ class Config(collections.MutableMapping):
         # is accessed and not found it will start a interactive prompt.
         # If batch mode is enabled then an Exception will be thrown
         super(Config, self).__setattr__('_available_keywords', [])
+
+        # add the defaults if any were specified
+        for k, v in defaults.iteritems():
+            self._set(k, v)
 
     @classmethod
     def _check_key_name(cls, name):
@@ -170,35 +174,3 @@ class Config(collections.MutableMapping):
                 val = k.prompt()
                 self._set(k.name, val)
         return True
-
-import time
-import calendar
-class TimestampedConfig(Config):
-
-    def __init__(self, *args, **kwargs):
-        sep = kwargs.pop('separator', '::')
-        super(Config, self).__setattr__('_separator', sep)
-        super(TimestampedConfig, self).__init__(*args, **kwargs)
-
-    def _gen_value(self, value, timestamp=None):
-        t = calendar.timegm(time.gmtime(timestamp))
-        return str(value) + '::' + str(t)
-
-    def _extract_value(self, value):
-        """returns a tuple of (value, timestamp)"""
-        data = value.rsplit('::')
-        print data
-        return (data[0], int(data[1]))
-
-    def get(self, key, default=None):
-        value = super(TimestampedConfig, self).get(key, default=None)
-        return self._extract_value(str(value))[0]
-
-    def _set(self, key, value, timestamp=None):
-        value = self._gen_value(value, timestamp)
-        return super(TimestampedConfig, self)._set(key, value)
-
-    def last_modified(self, key):
-        """Returns the last time the key was modified"""
-        value = super(TimestampedConfig, self).get(key, default=None)
-        return self._extract_value(value)[1]
