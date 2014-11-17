@@ -29,7 +29,7 @@ class Config(collections.MutableMapping):
 
     def __init__(self, backend=None, batch=False, *args, **kwargs):
         """Defined the config variables and their validation methods"""
-        if not backend:
+        if backend is None:
             backend = MemStorageBackend()
         super(Config, self).__setattr__('_store', backend)
         super(Config, self).__setattr__('_isbatch', batch)
@@ -154,23 +154,11 @@ class Config(collections.MutableMapping):
     def sync(self):
         """
         Ensures the local dictionary is synced up with the backend
-        returns False on error with sync
         """
-        try:
-            return self._store.sync()
-        except AttributeError:
-            return False
+        return self._store.sync()
 
     def close(self):
-        """
-        Closes the backend if it supports it
-        """
-        try:
-            if self._store:
-                return self._store.close()
-        except AttributeError:
-            pass
-        return False
+        return self._store.close()
 
     def enable_batch(self):
         super(Config, self).__setattr__('_isbatch', True)
@@ -194,7 +182,6 @@ class Config(collections.MutableMapping):
         return True
 
 import time
-import datetime
 import calendar
 class TimestampedConfig(Config):
 

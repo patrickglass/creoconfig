@@ -6,15 +6,15 @@ coverage: chmod_quick
 	nosetests -v --with-coverage --cover-package creoconfig --cover-inclusive --cover-branches
 
 test: chmod_quick
-	# Run the test suite with coverage enabled
+	# Run the test suite
 	nosetests
 
 test_quick: chmod_quick
-	# Run the test suite with coverage enabled
-	nosetests -v --with-coverage --cover-package creoconfig --cover-inclusive --cover-branches --stop
+	# Run a quick test suite with coverage enabled
+	nosetests -v --stop
 
 interactive:
-	python -Wall tests/test_interactive_prompt.py
+	python -Wall tests/test_interactive_save.py
 
 chmod:
 	# Set the correct permissions for all files

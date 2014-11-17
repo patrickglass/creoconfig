@@ -11,8 +11,9 @@ except:
 import os
 import base64
 import unittest
+import fakeredis
 from mock import patch
-from creoconfig import Config, FileStorageBackend, ConfigParserStorageBackend
+from creoconfig import Config, MemStorageBackend, FileStorageBackend, RedisStorageBackend, ConfigParserStorageBackend
 from creoconfig.exceptions import *
 
 
@@ -129,10 +130,15 @@ class TestCaseConfig(unittest.TestCase):
         self.assertRaises(AttributeError, getattr, c, 'mykey')
         self.assertRaises(KeyError, lambda: c['mykey'])
 
-    def test_sync_ok(self):
-        """Config.sync() should not throw an error"""
+    def test_sync_not_exist(self):
+        """Config.sync() not supported for MemStorageBackend"""
         c = self.cfg()
-        c.sync()
+        self.assertRaises(AttributeError, lambda: c.sync())
+
+    def test_close_not_exist(self):
+        """Config.sync() not supported for MemStorageBackend"""
+        c = self.cfg()
+        self.assertRaises(AttributeError, lambda: c.close())
 
     def test_batch_enable(self):
         """test_batch_enable - ensure we can enable batchmode if not set"""
@@ -325,6 +331,33 @@ class TestConfigOptionDefault(unittest.TestCase):
         self.assertRaises(IllegalArgumentError, c.add_option, 'keyname', type=str, default=354.545)
 
 
+class TestConfigBackendOverride(unittest.TestCase):
+
+    def setUp(self):
+        """Set the class to use for all testcases"""
+        self.cfg = Config
+
+    def test_mem(self):
+        backend = MemStorageBackend()
+        c = self.cfg(backend=backend)
+        self.assertIsInstance(c._store, MemStorageBackend)
+
+    def test_file(self):
+        backend = FileStorageBackend('tmp_TestConfigBackendOverride_file')
+        c = self.cfg(backend=backend)
+        self.assertIsInstance(c._store, FileStorageBackend)
+
+    def test_redis(self):
+        backend = RedisStorageBackend(connection=fakeredis.FakeStrictRedis)
+        c = self.cfg(backend=backend)
+        self.assertIsInstance(c._store, RedisStorageBackend)
+
+    def test_configparser(self):
+        backend = ConfigParserStorageBackend('tmp_TestConfigBackendOverride_configparser')
+        c = self.cfg(backend=backend)
+        self.assertIsInstance(c._store, ConfigParserStorageBackend)
+
+
 class TestConfigOptionChoices(unittest.TestCase):
 
     def setUp(self):
@@ -447,10 +480,51 @@ class TestConfigFileBackend(unittest.TestCase):
     def test_sync_ok(self):
         """Config.sync() should not throw an exception"""
         s = FileStorageBackend(self.gen_new_filename())
+        if s:
+            print "s is True"
+        else:
+            print "s is False"
+        print s
         c = self.cfg(backend=s)
+        print c._store
         c.sync()
 
+
     @unittest.skip("not working")
+    def test_file_persistance_overwrite_var(self):
+        f = self.gen_new_filename()
+        store = FileStorageBackend(f)
+        c = self.cfg(store)
+        self.assertRaises(AttributeError, getattr, c, 'mykey')
+        c.mykey = 'myvalue'
+        c.keytodelete = 'secretvalue'
+        c.anotherkey = 'someothervalue'
+        c['dictkey'] = 'values'
+        print c['mykey']
+        print c._store.__dict__
+        self.assertEqual(c.dictkey, 'values')
+        self.assertEqual(c.mykey, 'myvalue')
+        self.assertEqual(c.keytodelete, 'secretvalue')
+        self.assertEqual(c.anotherkey, 'someothervalue')
+
+        # Now recreate the Config and check if value is taken
+        # we dont want to auto create file if it does not exists.
+        c = self.cfg(FileStorageBackend(f, flag='w'))
+        print c._store.__dict__
+        self.assertEqual(c.dictkey, 'values')
+        self.assertEqual(c.mykey, 'myvalue')
+        self.assertEqual(c.keytodelete, 'secretvalue')
+        self.assertEqual(c.anotherkey, 'someothervalue')
+        del c.keytodelete
+        print c['mykey']
+        del c['mykey']
+        self.assertRaises(KeyError, lambda: c['mykey'])
+        self.assertRaises(KeyError, lambda: c['keytodelete'])
+        self.assertEqual(c.anotherkey, 'someothervalue')
+        self.assertRaises(AttributeError, getattr, c, 'mykey')
+        self.assertRaises(KeyError, lambda: c['mykey'])
+
+    # @unittest.skip("not working")
     def test_file_persistance_context(self):
         f = self.gen_new_filename()
         def create_data():
@@ -480,7 +554,7 @@ class TestConfigFileBackend(unittest.TestCase):
         self.assertRaises(AttributeError, getattr, c, 'mykey')
         self.assertRaises(KeyError, lambda: c['mykey'])
 
-    @unittest.skip("not working")
+    # @unittest.skip("not working")
     def test_file_persistance_with_close(self):
         f = self.gen_new_filename()
         store = FileStorageBackend(f)
@@ -489,23 +563,27 @@ class TestConfigFileBackend(unittest.TestCase):
         c.mykey = 'myvalue'
         c.keytodelete = 'secretvalue'
         c.anotherkey = 'someothervalue'
+        c['dictkey'] = 'values'
         print c['mykey']
         print c._store.__dict__
+        self.assertEqual(c.dictkey, 'values')
         self.assertEqual(c.mykey, 'myvalue')
         self.assertEqual(c.keytodelete, 'secretvalue')
         self.assertEqual(c.anotherkey, 'someothervalue')
 
         # Close should be optional, since orphaning original c
         # should auto close the backend
-        c.sync()
+        # c.sync()
         c.close()
+
 
         # Now recreate the Config and check if value is taken
         # we dont want to auto create file if it does not exists.
         # FIXME: TESTING WITH SHARED BACKEND
-        # c = self.cfg(FileStorageBackend(f, flag='w'))
-        c = self.cfg(store)
+        c = self.cfg(FileStorageBackend(f, flag='w'))
+        # c = self.cfg(store)
         print c._store.__dict__
+        self.assertEqual(c.dictkey, 'values')
         self.assertEqual(c.mykey, 'myvalue')
         self.assertEqual(c.keytodelete, 'secretvalue')
         self.assertEqual(c.anotherkey, 'someothervalue')
@@ -520,7 +598,7 @@ class TestConfigFileBackend(unittest.TestCase):
         self.assertRaises(AttributeError, getattr, c, 'mykey')
         self.assertRaises(KeyError, lambda: c['mykey'])
 
-    @unittest.skip("not working")
+    # @unittest.skip("not working")
     def test_file_persistance_configparser(self):
         f = self.gen_new_filename()
         store = ConfigParserStorageBackend(f)

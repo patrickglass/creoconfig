@@ -51,10 +51,6 @@ class FileStorageBackend(MemStorageBackend):
                 n Always create a new, empty database, open for reading and writing
         """
         self.store = shelve.open(filename, flag, writeback=True)
-        # self.store
-        # self.sync()
-        # print("INFO: Opening %s" % filename)
-        # print("INFO: Data: %s" % str(self.store))
 
     def __del__(self):
         self.close()

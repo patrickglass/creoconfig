@@ -11,19 +11,21 @@ sys.path.append(os.path.realpath('.'))
 
 from creoconfig import Config
 from creoconfig.exceptions import *
-from creoconfig import FileStorageBackend
+from creoconfig import ConfigParserStorageBackend
 
 
 
-def gen_new_filename(base='tmp_interactive_save_%s.db'):
-    f = base % uuid.uuid1()
-    print("INFO: Generated new file: %s" % f)
-    return f
+# def gen_new_filename(base='tmp_interactive_save_%s.db'):
+#     f = base % uuid.uuid1()
+#     print("INFO: Generated new file: %s" % f)
+#     return f
 
-filename = gen_new_filename()
+# filename = gen_new_filename()
+filename = "tmp_interactive_save.db"
+
 
 def interactive_prompt():
-    s = FileStorageBackend(filename)
+    s = ConfigParserStorageBackend(filename)
     c = Config(backend=s)
 
     print("Configuration Start:")
