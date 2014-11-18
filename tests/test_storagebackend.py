@@ -4,7 +4,6 @@ UnitTest framework for validating StorageBackends
 """
 import os
 import base64
-import fakeredis
 try:
     import unittest2 as unittest
 except:
@@ -270,26 +269,6 @@ class TestCaseConfigParserStorageBackend(TestCaseFileStorageBackend):
         self.assertRaises(KeyError, s.get, 'mykeys')
         self.assertEqual(s.get('mykeys2'), 'myvalues')
         self.assertEqual(len(s), 1)
-
-
-class TestCaseRedisStorageBackend(TestCaseMemStorageBackend):
-
-    def setUp(self):
-        self.s = RedisStorageBackend(connection=fakeredis.FakeStrictRedis)
-        self.s.flush()
-
-    def test_flush(self):
-        self.assertTrue(self.s.set('mykey', 'myval'))
-        self.assertEqual(self.s.get('mykey'), 'myval')
-        self.assertEqual(len(self.s), 1)
-        self.s.flush()
-        self.assertEqual(len(self.s), 0)
-        self.assertRaises(KeyError, self.s.get, 'mykey')
-
-    def teardown(self):
-        self.s.delete('mykey')
-        self.s.delete('234234')
-        self.s.delete({'a': 123, 'b': '1231'})
 
 
 if __name__ == '__main__':

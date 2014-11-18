@@ -8,6 +8,6 @@
 
 nose
 mock
-fakeredis
 redis
+fakeredis
 unittest2

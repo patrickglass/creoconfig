@@ -8,7 +8,6 @@ from configtimestamped import TimestampedConfig
 from storagebackend import (
     MemStorageBackend,
     FileStorageBackend,
-    RedisStorageBackend,
     ConfigParserStorageBackend
 )
 

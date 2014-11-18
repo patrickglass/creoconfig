@@ -11,9 +11,8 @@ except:
 import os
 import base64
 import unittest
-import fakeredis
 from mock import patch
-from creoconfig import Config, MemStorageBackend, FileStorageBackend, RedisStorageBackend, ConfigParserStorageBackend
+from creoconfig import Config, MemStorageBackend, FileStorageBackend, ConfigParserStorageBackend
 from creoconfig.exceptions import *
 
 
@@ -412,11 +411,6 @@ class TestCaseConfig(unittest.TestCase):
         backend = FileStorageBackend('tmp_TestConfigBackendOverride_file')
         c = self.cfg(backend=backend)
         self.assertIsInstance(c._store, FileStorageBackend)
-
-    def test_redis(self):
-        backend = RedisStorageBackend(connection=fakeredis.FakeStrictRedis)
-        c = self.cfg(backend=backend)
-        self.assertIsInstance(c._store, RedisStorageBackend)
 
     def test_configparser(self):
         backend = ConfigParserStorageBackend('tmp_TestConfigBackendOverride_configparser')
