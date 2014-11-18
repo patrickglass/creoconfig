@@ -21,7 +21,7 @@ class TimestampedConfig(Config):
 
     def _extract_value(self, value):
         """returns a tuple of (value, timestamp)"""
-        data = value.rsplit('::')
+        data = value.rsplit('::', 1)
         print data
         try:
             return (data[0], int(data[1]))

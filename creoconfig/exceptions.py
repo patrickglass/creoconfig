@@ -22,3 +22,7 @@ class BatchModeUnableToPrompt(ConfigException):
 class TooManyRetries(ConfigException):
     """User failed to enter valid options to many times"""
     pass
+
+class SignatureError(ConfigException):
+    """Config entry has been modified external to this config application"""
+    pass

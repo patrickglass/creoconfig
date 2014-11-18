@@ -2,6 +2,7 @@
 creoconfig
 """
 import exceptions
+import signing
 from config import Config
 from configtimestamped import TimestampedConfig
 from storagebackend import (
