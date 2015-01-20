@@ -12,7 +12,12 @@ import os
 import base64
 import unittest
 from mock import patch
-from creoconfig import Config, MemStorageBackend, XmlStorageBackend as FileStorageBackend, ConfigParserStorageBackend
+from creoconfig import Config
+from creoconfig.storagebackend import (
+    MemStorageBackend,
+    XmlStorageBackend as FileStorageBackend,
+    ConfigParserStorageBackend
+)
 from creoconfig.exceptions import *
 
 
@@ -646,6 +651,45 @@ class TestConfigFileBackend(unittest.TestCase):
         self.assertEqual(c.anotherkey, 'someothervalue')
         self.assertRaises(AttributeError, getattr, c, 'mykey')
         self.assertRaises(KeyError, lambda: c['mykey'])
+
+
+    #
+    # Test last_modified method
+    #
+    @patch('creoconfig.storagebackend.time.time', return_value=1300000001)
+    def test_last_modified_mem(self, input):
+        c = self.cfg()
+        c.testkey = 'somevalue'
+        self.assertEqual(c.testkey, 'somevalue')
+        # MemoryStorageBackend does not support extra kvp attributes
+        self.assertEqual(c.last_modified('testkey'), None)
+
+    @patch('creoconfig.storagebackend.time.time', return_value=1300000001)
+    def test_last_modified_xml(self, input):
+        c = self.cfg(self.gen_new_filename())
+        c.testkey = 'somevalue'
+        self.assertEqual(c.testkey, 'somevalue')
+        self.assertEqual(c.last_modified('testkey'), input._mock_return_value)
+
+    @unittest.skip("these test since this config only returns strings")
+    def test_prompt_int_choices_ok(self):
+        pass
+
+    @unittest.skip("these test since this config only returns strings")
+    def test_prompt_int_dict_default(self):
+        pass
+
+    @unittest.skip("these test since this config only returns strings")
+    def test_prompt_int_dict_no_default(self):
+        pass
+
+    @unittest.skip("these test since this config only returns strings")
+    def test_prompt_int_attr_no_default(self):
+        pass
+
+    @unittest.skip("these test since this config only returns strings")
+    def test_prompt_int_attr_default(self):
+        pass
 
     def tearDown(self):
         # Delete all files which were created

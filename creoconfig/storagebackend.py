@@ -2,6 +2,9 @@
 StorageBackend
 """
 import os
+import time
+import hmac
+import hashlib
 import shelve
 import collections
 import ConfigParser
@@ -42,6 +45,10 @@ class MemStorageBackend(collections.MutableMapping):
 
     def delete(self, key):
         return self.__delitem__(key)
+
+    def last_modified(self, key):
+        """Not supported yet for this backend"""
+        return None
 
 
 class FileStorageBackend(MemStorageBackend):
@@ -102,10 +109,11 @@ class ConfigParserStorageBackend(FileStorageBackend):
 
 
 class XmlStorageBackend(ConfigParserStorageBackend):
-    def __init__(self, filename, *args, **kwargs):
+    def __init__(self, filename, hashentries=True, *args, **kwargs):
         # Specify the name of the xml element for variables
         self.version = '1.0.0'
         self.filename = filename
+        self.hashentries = hashentries
         if os.path.exists(self.filename):
             with open(self.filename) as f:
                 print "INFO:", "Trying to read file %s" % self.filename
@@ -121,6 +129,35 @@ class XmlStorageBackend(ConfigParserStorageBackend):
 
         if self.version != '1.0.0':
             print "XML file is not a valid configuration version."
+
+    @staticmethod
+    def sign(*args):
+        """
+        generates a hash signature from the input arguments which
+        can be used to check for future tampering.
+        """
+        sig = hmac.new(b'creoconfig.storagebackend', digestmod=hashlib.sha1)
+        for arg in args:
+            sig.update(bytes(arg))
+        return sig.digest().encode("base64").rstrip('\n')
+
+    @staticmethod
+    def validate(signature, *args):
+        gensig = XmlStorageBackend.sign(*args)
+        print("INFO: Comparing Signatures: %s =? %s" % (signature, gensig))
+        return XmlStorageBackend._compare_digest(bytes(gensig), bytes(signature))
+
+    @staticmethod
+    def _compare_digest(x, y):
+        return x == y
+        if not (isinstance(x, bytes) and isinstance(y, bytes)):
+            raise TypeError("both inputs should be instances of bytes")
+        if len(x) != len(y):
+            return False
+        result = 0
+        for a, b in zip(x, y):
+            result |= a ^ b
+        return (result == 0)
 
     def __setitem__(self, key, value):
         # If the value exists just replace it otherwise create new
@@ -138,6 +175,12 @@ class XmlStorageBackend(ConfigParserStorageBackend):
         node_value.text = str(value)
         # We also will store the original type of the value
         node_value.set('type', type(value).__name__)
+
+        # Check if we should add the hash signature
+        if self.hashentries:
+            node.set('timestamp', str(time.time()))
+            sig = XmlStorageBackend.sign(key, str(value), type(value).__name__)
+            node.set('signature', sig)
         print "SET:", ElementTree.tostring(self.store.getroot())
         # TODO: check the performance impact of this option
         self.sync()
@@ -149,6 +192,22 @@ class XmlStorageBackend(ConfigParserStorageBackend):
         for var in self.store.iter('var'):
             if var.find('name').text == key:
                 return var.find('value').text or var.find('default').text
+        raise KeyError("name %s was not found in xml file!" % key)
+
+    def last_modified(self, key):
+        """
+        Returns the last modified time epoch float if the key exists
+
+        raises a keyerror if key does not exist.
+        """
+        print "GET_MODIFIED:", ElementTree.tostring(self.store.getroot())
+        for var in self.store.iter('var'):
+            if var.find('name').text == key:
+                ts = var.get('timestamp')
+                if ts:
+                    return float(ts)
+                else:
+                    return None
         raise KeyError("name %s was not found in xml file!" % key)
 
     def __delitem__(self, key):

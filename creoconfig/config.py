@@ -101,6 +101,9 @@ class Config(collections.MutableMapping):
                 return self._auto_prompt(key)
         return val
 
+    def last_modified(self, key):
+        return self._store.last_modified(key)
+
     def __getitem__(self, key):
         # print("INFO: Config.__getitem__(%s)" % key)
         return self.get(key)

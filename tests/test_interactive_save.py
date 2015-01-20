@@ -11,8 +11,6 @@ sys.path.append(os.path.realpath('.'))
 
 from creoconfig import Config
 from creoconfig.exceptions import *
-from creoconfig import ConfigParserStorageBackend
-
 
 
 # def gen_new_filename(base='tmp_interactive_save_%s.db'):
@@ -21,12 +19,11 @@ from creoconfig import ConfigParserStorageBackend
 #     return f
 
 # filename = gen_new_filename()
-filename = "tmp_interactive_save.db"
+filename = "tmp_interactive_save.xml"
 
 
 def interactive_prompt():
-    s = ConfigParserStorageBackend(filename)
-    c = Config(backend=s)
+    c = Config(filename)
 
     print("Configuration Start:")
     for k,v in c.iteritems():

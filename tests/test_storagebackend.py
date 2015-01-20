@@ -247,6 +247,88 @@ class TestCaseConfigParserStorageBackend(TestCaseXMLStorageBackend):
         self.assertEqual(len(s), 1)
 
 
+def _alter_str(data, pos=0, incr=1, num=1):
+    """Alters a string at the given position by incrementing the char"""
+    start = pos
+    assert pos >= 0
+    assert incr >= 0
+    assert num >= 0
+    assert len(data) >= (pos + num)
+    while pos < num + start:
+        data = data[:pos] + chr(ord(data[pos]) + incr) + data[pos+1:]
+        pos += 1
+    return data
+
+
+class TestCaseSigningBackend(unittest.TestCase):
+
+    def gen_new_filename(self, base='tmp_%s.xml'):
+        # f = base % uuid.uuid1()
+        f = base % base64.b16encode(os.urandom(16))
+        self.files.append(f)
+        print("INFO: Generated new file: %s" % f)
+        return f
+
+    def test_alter_str(self):
+        s = 'abcde'
+        self.assertEqual(_alter_str(s, incr=0), 'abcde')
+        self.assertEqual(_alter_str(s, num=0), 'abcde')
+        self.assertEqual(_alter_str(s), 'bbcde')
+        self.assertEqual(_alter_str(s, 0), 'bbcde')
+        self.assertEqual(_alter_str(s, 1), 'accde')
+        self.assertEqual(_alter_str(s, 2), 'abdde')
+        self.assertEqual(_alter_str(s, 3), 'abcee')
+        self.assertEqual(_alter_str(s, 4), 'abcdf')
+        self.assertRaises(AssertionError, _alter_str, s, 5)
+
+    def setUp(self):
+        self.files = []
+        self.filename = self.gen_new_filename()
+        self.s = XmlStorageBackend(self.filename)
+
+    def test_sign_validate_method(self):
+        data = ['mykey', 'myvalue', 'valuetype']
+        sig = XmlStorageBackend.sign(*data)
+        self.assertTrue(sig)
+        r = XmlStorageBackend.validate(sig, *data)
+        self.assertTrue(r, 'Signature check failed')
+
+    def test_sign_validate_method_altered(self):
+        data = ['mykey', 'myvalue', 'valuetype']
+        sig = XmlStorageBackend.sign(*data)
+        sig = _alter_str(sig, 3)
+        self.assertTrue(sig)
+        r = XmlStorageBackend.validate(sig, *data)
+        self.assertFalse(r, 'Signature validated incorrectly after altering')
+
+    def test_sign_method(self):
+        golden_sig = b'4U+ZV6b63EaA1GEOqlsRJSpFjOc='
+        sig = XmlStorageBackend.sign('mykey', 'myvalue', 'valuetype')
+        self.assertEquals(sig, golden_sig)
+
+    def test_sign_method_diff_arg_format(self):
+        data = ['mykey', 'myvalue', 'valuetype']
+        sig1 = XmlStorageBackend.sign(*data)
+        sig2 = XmlStorageBackend.sign('mykey', 'myvalue', 'valuetype')
+        self.assertEquals(sig1, sig2)
+
+    def test_digestcompare_method(self):
+        golden_sig = b'4U+ZV6b63EaA1GEOqlsRJSpFjOc='
+
+        new_sig = b'4U+ZV6b63EaA1GEOqlsRJSpFjOc='
+        self.assertTrue(XmlStorageBackend._compare_digest(golden_sig, new_sig))
+        new_sig = '4U+ZV6b63EaA1GEOqlsRJSpFjOc='
+        self.assertTrue(XmlStorageBackend._compare_digest(golden_sig, new_sig))
+        new_sig = u'4U+ZV6b63EaA1GEOqlsRJSpFjOc='
+        self.assertTrue(XmlStorageBackend._compare_digest(golden_sig, new_sig))
+
+    def test_validate_method(self):
+        golden_sig = b'4U+ZV6b63EaA1GEOqlsRJSpFjOc='
+        data = ['mykey', 'myvalue', 'valuetype']
+        r = XmlStorageBackend.validate(golden_sig, *data)
+        self.assertTrue(r, 'Signature check failed')
+
+
 if __name__ == '__main__':
     print "INFO: Running tests!"
     unittest.main()
