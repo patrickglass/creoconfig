@@ -262,13 +262,6 @@ def _alter_str(data, pos=0, incr=1, num=1):
 
 class TestCaseSigningBackend(unittest.TestCase):
 
-    def gen_new_filename(self, base='tmp_%s.xml'):
-        # f = base % uuid.uuid1()
-        f = base % base64.b16encode(os.urandom(16))
-        self.files.append(f)
-        print("INFO: Generated new file: %s" % f)
-        return f
-
     def test_alter_str(self):
         s = 'abcde'
         self.assertEqual(_alter_str(s, incr=0), 'abcde')
@@ -280,11 +273,6 @@ class TestCaseSigningBackend(unittest.TestCase):
         self.assertEqual(_alter_str(s, 3), 'abcee')
         self.assertEqual(_alter_str(s, 4), 'abcdf')
         self.assertRaises(AssertionError, _alter_str, s, 5)
-
-    def setUp(self):
-        self.files = []
-        self.filename = self.gen_new_filename()
-        self.s = XmlStorageBackend(self.filename)
 
     def test_sign_validate_method(self):
         data = ['mykey', 'myvalue', 'valuetype']
