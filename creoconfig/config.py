@@ -8,7 +8,7 @@ import re
 import collections
 import configobject
 from exceptions import BatchModeUnableToPrompt
-from storagebackend import MemStorageBackend
+from storagebackend import MemStorageBackend, XmlStorageBackend
 
 
 # This is a global environment settings attribute dictionary
@@ -19,10 +19,15 @@ class Config(collections.MutableMapping):
     it is used for storing all config information once read in.
     """
 
-    def __init__(self, defaults={}, backend=None, batch=False, *args, **kwargs):
-        """Defined the config variables and their validation methods"""
-        if backend is None:
+    def __init__(self, filename=None, defaults={}, batch=False, *args, **kwargs):
+        """Defined the config variables and their validation methods
+
+        filename - if you wish the configuration to persist specify save location
+        """
+        if filename is None:
             backend = MemStorageBackend()
+        else:
+            backend = XmlStorageBackend(filename)
         super(Config, self).__setattr__('_store', backend)
         super(Config, self).__setattr__('_isbatch', batch)
         # Store the variables which have a help menu. When one of these

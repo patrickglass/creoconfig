@@ -8,6 +8,7 @@
 
 nose
 mock
+coverage
 redis
 fakeredis
 unittest2

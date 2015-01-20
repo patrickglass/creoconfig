@@ -56,7 +56,7 @@ class TestCaseConfig(unittest.TestCase):
         Test that attributes can be accessed (both as keys, and as
         attributes).
         """
-        c = self.cfg({'foo': 'bar', 'mykey': 'myval'})
+        c = self.cfg(defaults={'foo': 'bar', 'mykey': 'myval'})
         print c.__dict__
         print c._store.store
         # found
@@ -403,20 +403,8 @@ class TestCaseConfig(unittest.TestCase):
 #         self.cfg = Config
 
     def test_mem(self):
-        backend = MemStorageBackend()
-        c = self.cfg(backend=backend)
+        c = self.cfg()
         self.assertIsInstance(c._store, MemStorageBackend)
-
-    def test_file(self):
-        backend = FileStorageBackend('tmp_TestConfigBackendOverride_file')
-        c = self.cfg(backend=backend)
-        self.assertIsInstance(c._store, FileStorageBackend)
-
-    def test_configparser(self):
-        backend = ConfigParserStorageBackend('tmp_TestConfigBackendOverride_configparser')
-        c = self.cfg(backend=backend)
-        self.assertIsInstance(c._store, ConfigParserStorageBackend)
-
 
 # class TestConfigOptionChoices(unittest.TestCase):
 
@@ -537,15 +525,18 @@ class TestConfigFileBackend(unittest.TestCase):
         print("INFO: Generated new file: %s" % f)
         return f
 
+    def test_file(self):
+        c = self.cfg(filename=self.gen_new_filename())
+        self.assertIsInstance(c._store, FileStorageBackend)
+
+    def test_file_def_order(self):
+        c = self.cfg(self.gen_new_filename())
+        self.assertIsInstance(c._store, FileStorageBackend)
+
+
     def test_sync_ok(self):
         """Config.sync() should not throw an exception"""
-        s = FileStorageBackend(self.gen_new_filename())
-        if s:
-            print "s is True"
-        else:
-            print "s is False"
-        print s
-        c = self.cfg(backend=s)
+        c = self.cfg(self.gen_new_filename())
         print c._store
         c.sync()
 
@@ -553,8 +544,7 @@ class TestConfigFileBackend(unittest.TestCase):
     @unittest.skip("not working")
     def test_file_persistance_overwrite_var(self):
         f = self.gen_new_filename()
-        store = FileStorageBackend(f)
-        c = self.cfg(store)
+        c = self.cfg(f)
         self.assertRaises(AttributeError, getattr, c, 'mykey')
         c.mykey = 'myvalue'
         c.keytodelete = 'secretvalue'
@@ -569,7 +559,7 @@ class TestConfigFileBackend(unittest.TestCase):
 
         # Now recreate the Config and check if value is taken
         # we dont want to auto create file if it does not exists.
-        c = self.cfg(FileStorageBackend(f, flag='w'))
+        c = self.cfg(f)
         print c._store.__dict__
         self.assertEqual(c.dictkey, 'values')
         self.assertEqual(c.mykey, 'myvalue')
@@ -588,7 +578,7 @@ class TestConfigFileBackend(unittest.TestCase):
     def test_file_persistance_context(self):
         f = self.gen_new_filename()
         def create_data():
-            c = self.cfg(backend=FileStorageBackend(f))
+            c = self.cfg(f)
             self.assertRaises(AttributeError, getattr, c, 'mykey')
             c.mykey = 'myvalue'
             c.keytodelete = 'secretvalue'
@@ -600,7 +590,7 @@ class TestConfigFileBackend(unittest.TestCase):
             self.assertEqual(c.anotherkey, 'someothervalue')
         create_data()
         # Now recreate the Config and check if value is taken
-        c = self.cfg(backend=FileStorageBackend(f, flag='w'))
+        c = self.cfg(f)
         print c._store.__dict__
         print c['mykey']
         self.assertEqual(c.mykey, 'myvalue')
@@ -617,8 +607,7 @@ class TestConfigFileBackend(unittest.TestCase):
     # @unittest.skip("not working")
     def test_file_persistance_with_close(self):
         f = self.gen_new_filename()
-        store = FileStorageBackend(f)
-        c = self.cfg(backend=store)
+        c = self.cfg(f)
         self.assertRaises(AttributeError, getattr, c, 'mykey')
         c.mykey = 'myvalue'
         c.keytodelete = 'secretvalue'
@@ -640,50 +629,10 @@ class TestConfigFileBackend(unittest.TestCase):
         # Now recreate the Config and check if value is taken
         # we dont want to auto create file if it does not exists.
         # FIXME: TESTING WITH SHARED BACKEND
-        c = self.cfg(FileStorageBackend(f, flag='w'))
+        c = self.cfg(f)
         # c = self.cfg(store)
         print c._store.__dict__
         self.assertEqual(c.dictkey, 'values')
-        self.assertEqual(c.mykey, 'myvalue')
-        self.assertEqual(c.keytodelete, 'secretvalue')
-        self.assertEqual(c.anotherkey, 'someothervalue')
-        # FIXME: Why does this del not work (TypeError: Invalid key: 'mykey')
-        del c.keytodelete
-        print c['mykey']
-        del c['mykey']
-        # self.assertEqual(c.mykey, 'myvalue')
-        self.assertRaises(KeyError, lambda: c['mykey'])
-        self.assertRaises(KeyError, lambda: c['keytodelete'])
-        self.assertEqual(c.anotherkey, 'someothervalue')
-        self.assertRaises(AttributeError, getattr, c, 'mykey')
-        self.assertRaises(KeyError, lambda: c['mykey'])
-
-    # @unittest.skip("not working")
-    def test_file_persistance_configparser(self):
-        f = self.gen_new_filename()
-        store = ConfigParserStorageBackend(f)
-        c = self.cfg(backend=store)
-        self.assertRaises(AttributeError, getattr, c, 'mykey')
-        c.mykey = 'myvalue'
-        c.keytodelete = 'secretvalue'
-        c.anotherkey = 'someothervalue'
-        print c['mykey']
-        print c._store.__dict__
-        self.assertEqual(c.mykey, 'myvalue')
-        self.assertEqual(c.keytodelete, 'secretvalue')
-        self.assertEqual(c.anotherkey, 'someothervalue')
-
-        # Close should be optional, since orphaning original c
-        # should auto close the backend
-        c.sync()
-        # c.close()
-
-        # Now recreate the Config and check if value is taken
-        # we dont want to auto create file if it does not exists.
-        # FIXME: TESTING WITH SHARED BACKEND
-        # c = self.cfg(FileStorageBackend(f, flag='w'))
-        c = self.cfg(store)
-        print c._store.__dict__
         self.assertEqual(c.mykey, 'myvalue')
         self.assertEqual(c.keytodelete, 'secretvalue')
         self.assertEqual(c.anotherkey, 'someothervalue')
@@ -707,7 +656,6 @@ class TestConfigFileBackend(unittest.TestCase):
                 os.remove(f)
             except OSError:
                 pass
-
 
 
 if __name__ == '__main__':
