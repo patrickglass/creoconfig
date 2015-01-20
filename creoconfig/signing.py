@@ -2,6 +2,7 @@ import time
 import hmac
 import base64
 import hashlib
+import calendar
 
 from exceptions import SignatureError
 
@@ -14,11 +15,11 @@ class Signer(object):
     not be cryptographically secure. A malitious user would be able to re-create
     the signed value if they have access to this source.
     """
-    def __init__(self, key=None, salt=None, skip_validation=False):
+    def __init__(self, key=None, salt=None):
         self._key = key
         self._salt = salt or 'creoconfig.signing'
         self._separator = '::'
-        self._skip_validation = skip_validation
+        # self._skip_validation = skip_validation
 
     def sign(self, value, salt=None):
         """
@@ -29,7 +30,7 @@ class Signer(object):
         sig = self._get_signature(value, salt)
         return str(value) + self._separator + str(sig)
 
-    def unsign(self, value, salt=None):
+    def unsign(self, value, salt=None, validate=True):
         """
         extracts the value from the complex text field.
 
@@ -40,9 +41,8 @@ class Signer(object):
         val, sig = value.rsplit(self._separator, 1)
 
         # Check that we have a valid signature
-        if not self._skip_validation:
-            self.validate(val, sig)
-
+        if validate and not self.validate(val, sig):
+            raise SignatureError("Could not validate signature of field")
         return val
 
     def validate(self, value, signature, salt=None):
@@ -50,7 +50,7 @@ class Signer(object):
         gensig = self._get_signature(value, salt=salt)
         print("INFO: Comparing Signatures: %s =? %s" % (signature, gensig))
         if not self.compare_digest(self.to_bytes(gensig), self.to_bytes(signature)):
-            raise SignatureError("Could not validate signature of field")
+            return False
         return True
 
     def _get_signature(self, value, salt=None):
@@ -90,14 +90,14 @@ class TimestampSigner(Signer):
     not be cryptographically secure. A malitious user would be able to re-create
     the signed value if they have access to this source.
     """
-    def sign(self, value, salt=None):
+    def sign(self, value, salt=None, timestamp=None):
         """
         creates a complext text string which has the human readable value
         as well as a timestamp and hash signature. This can be used to
         detect tampering
         """
         value = str(value)
-        value += self._separator + TimestampSigner.encode_timestamp()
+        value += self._separator + TimestampSigner.encode_timestamp(timestamp)
         return super(TimestampSigner, self).sign(value, salt)
 
     def unsign(self, value, salt=None):
@@ -109,11 +109,15 @@ class TimestampSigner(Signer):
         """
         print "DEBUG: " + value
         value_time = super(TimestampSigner, self).unsign(value, salt)
-        return value_time.rsplit(self._separator, 1)
+        data = value_time.rsplit(self._separator, 1)
+        if len(data) == 2:
+            data[1] = self.decode_timestamp(data[1])
+        return data
 
     @staticmethod
-    def encode_timestamp():
-        t = time.time()
+    def encode_timestamp(timestamp=None):
+        # t = time.time()
+        t = calendar.timegm(time.gmtime(timestamp))
         return base64.b64encode(bytes(t))
 
     @staticmethod
