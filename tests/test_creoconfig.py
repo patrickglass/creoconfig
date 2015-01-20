@@ -12,7 +12,7 @@ import os
 import base64
 import unittest
 from mock import patch
-from creoconfig import Config, MemStorageBackend, FileStorageBackend, ConfigParserStorageBackend
+from creoconfig import Config, MemStorageBackend, XmlStorageBackend as FileStorageBackend, ConfigParserStorageBackend
 from creoconfig.exceptions import *
 
 

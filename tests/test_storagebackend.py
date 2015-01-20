@@ -45,15 +45,6 @@ class TestCaseMemStorageBackend(unittest.TestCase):
         # self.assertRaises(KeyError, self.s.get, '123')
         self.assertEqual(self.s.get(123), 'myval')
 
-    @unittest.skip("We should not allow objects as keys. FIXME throw error in Backends.")
-    def test_object_key(self):
-        mykey = object()
-        # self.assertTrue(self.s.set(mykey, 'myval'))
-        # self.assertEqual(self.s.get(mykey), 'myval')
-        self.assertRaises(AttributeError, self.s.set, mykey, 'myval')
-        self.assertRaises(AttributeError, self.s.set, mykey, 'myval2')
-        self.assertRaises(AttributeError, self.s.set, mykey, 'myval3')
-
     def test_dict_value(self):
         # Check that we are able to store a complex value type
         # since most backends only support string we will return
@@ -106,9 +97,9 @@ class TestCaseMemStorageBackend(unittest.TestCase):
             self.assertTrue((k, v))
 
 
-class TestCaseFileStorageBackend(TestCaseMemStorageBackend):
+class TestCaseXMLStorageBackend(TestCaseMemStorageBackend):
 
-    def gen_new_filename(self, base='tmp_%s.db'):
+    def gen_new_filename(self, base='tmp_%s.xml'):
         # f = base % uuid.uuid1()
         f = base % base64.b16encode(os.urandom(16))
         self.files.append(f)
@@ -118,7 +109,7 @@ class TestCaseFileStorageBackend(TestCaseMemStorageBackend):
     def setUp(self):
         self.files = []
         self.filename = self.gen_new_filename()
-        self.s = FileStorageBackend(self.filename)
+        self.s = XmlStorageBackend(self.filename)
 
     def test_close(self):
         self.assertEqual(self.s.close(), None)
@@ -126,42 +117,27 @@ class TestCaseFileStorageBackend(TestCaseMemStorageBackend):
     def test_int_key(self):
         self.assertRaises(TypeError, self.s.set, 123, 'myval')
 
-    def test_object_key(self):
-        mykey = object()
-        self.assertRaises(TypeError, self.s.set, mykey, 'myval')
-        self.assertRaises(TypeError, self.s.set, mykey, 'myval2')
-        self.assertRaises(TypeError, self.s.set, mykey, 'myval3')
-
-    # def test_object_value(self):
-    #     mykey = '234234'
-    #     myval = object()
-    #     self.assertRaises(TypeError, self.s.set, mykey, 'myval')
-    #     self.assertRaises(TypeError, self.s.set, mykey, 'myval2')
-    #     self.assertRaises(TypeError, self.s.set, mykey, 'myval3')
-
-
-    @unittest.skip("bsddb adds .db to filename on mac.")
     def test_data_persistance(self):
-        s = FileStorageBackend(self.filename, 'n')
+        s = XmlStorageBackend(self.filename)
         self.assertEqual(len(s), 0)
         s.set('mykeys', 'myvalues')
         self.assertEqual(len(s), 1)
-        s = FileStorageBackend(self.filename, 'w')
+        s.close()
+        s = XmlStorageBackend(self.filename)
         self.assertEqual(len(s), 1)
         self.assertEqual(s.get('mykeys'), 'myvalues')
         self.assertEqual(len(s), 1)
         del s['mykeys']
         self.assertEqual(len(s), 0)
         s.close()
-        # shelve does not allow get on closed object
-        self.assertRaises(ValueError, s.get, 'mykeys')
-        s = FileStorageBackend(self.filename, 'w')
+        s = XmlStorageBackend(self.filename)
         self.assertRaises(KeyError, s.get, 'mykeys')
         self.assertEqual(len(s), 0)
 
     def tearDown(self):
         # Fixme: Should close config
-        # self.s.close()
+        self.s.close()
+        del self.s
         # Delete all files which were created
         while len(self.files):
             f = self.files.pop()
@@ -172,11 +148,11 @@ class TestCaseFileStorageBackend(TestCaseMemStorageBackend):
                 pass
 
 
-class TestCaseConfigParserStorageBackend(TestCaseFileStorageBackend):
+class TestCaseConfigParserStorageBackend(TestCaseXMLStorageBackend):
 
     def setUp(self):
         self.files = []
-        self.filename = self.gen_new_filename()
+        self.filename = self.gen_new_filename(base='tmp_%s.cfgparser')
         self.s = ConfigParserStorageBackend(self.filename)
 
     def test_object_key(self):
