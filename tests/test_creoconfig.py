@@ -619,9 +619,7 @@ class TestConfigFileBackend(unittest.TestCase):
 
         # Now recreate the Config and check if value is taken
         # we dont want to auto create file if it does not exists.
-        # FIXME: TESTING WITH SHARED BACKEND
         c = self.cfg(f)
-        # c = self.cfg(store)
         print c._store.__dict__
         self.assertEqual(c.dictkey, 'values')
         self.assertEqual(c.mykey, 'myvalue')
@@ -637,6 +635,18 @@ class TestConfigFileBackend(unittest.TestCase):
         self.assertEqual(c.anotherkey, 'someothervalue')
         self.assertRaises(AttributeError, getattr, c, 'mykey')
         self.assertRaises(KeyError, lambda: c['mykey'])
+
+        # Lets create a new config one more time
+        c = self.cfg(f)
+        print c._store.__dict__
+        self.assertEqual(c.dictkey, 'values')
+        self.assertEqual(c.anotherkey, 'someothervalue')
+
+        # Lets create a new config one more time
+        c = self.cfg(f)
+        print c._store.__dict__
+        self.assertEqual(c.dictkey, 'values')
+        self.assertEqual(c.anotherkey, 'someothervalue')
 
 
     #

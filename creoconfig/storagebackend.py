@@ -165,7 +165,7 @@ class XmlStorageBackend(ConfigParserStorageBackend):
             raise TypeError("Key must be of string type")
         node = None
         for var in self.store.iter('var'):
-            if var.find('name').text == key:
+            if var.find('name').text.strip() == key:
                 node = var
         if node is None:
             node = ElementTree.SubElement(self.store.getroot(), 'var')
@@ -190,8 +190,8 @@ class XmlStorageBackend(ConfigParserStorageBackend):
         """TODO: Still need to use 'type' attr to cast value"""
         print "GET:", ElementTree.tostring(self.store.getroot())
         for var in self.store.iter('var'):
-            if var.find('name').text == key:
-                return var.find('value').text or var.find('default').text
+            if var.find('name').text.strip() == key:
+                return var.find('value').text.strip() or var.find('default').text.strip()
         raise KeyError("name %s was not found in xml file!" % key)
 
     def last_modified(self, key):
@@ -202,7 +202,7 @@ class XmlStorageBackend(ConfigParserStorageBackend):
         """
         print "GET_MODIFIED:", ElementTree.tostring(self.store.getroot())
         for var in self.store.iter('var'):
-            if var.find('name').text == key:
+            if var.find('name').text.strip() == key:
                 ts = var.get('timestamp')
                 if ts:
                     return float(ts)
@@ -212,7 +212,7 @@ class XmlStorageBackend(ConfigParserStorageBackend):
 
     def __delitem__(self, key):
         for var in self.store.findall('var'):
-            if var.find('name').text == key:
+            if var.find('name').text.strip() == key:
                 self.store.getroot().remove(var)
                 # Save this update disk
                 self.sync()
@@ -222,7 +222,7 @@ class XmlStorageBackend(ConfigParserStorageBackend):
     def __iter__(self):
         data = {}
         for var in self.store.findall('var'):
-            data[var.find('name').text] = var.find('value').text
+            data[var.find('name').text.strip()] = var.find('value').text.strip()
         return iter(data)
 
     def __len__(self):
