@@ -31,7 +31,7 @@ class TestCaseConfig(unittest.TestCase):
         """
         Configs can start with initial values by passing in as extra args
         """
-        c = self.cfg({'foo': 'bar', 'alpha': {'beta': 2, 'bravo': {}}})
+        c = self.cfg(defaults={'foo': 'bar', 'alpha': {'beta': 2, 'bravo': {}}})
         # as key
         self.assertEqual(c['foo'], 'bar')
         # as attribute
@@ -42,6 +42,19 @@ class TestCaseConfig(unittest.TestCase):
         self.assertEqual(c.alpha, {'beta': 2, 'bravo': {}})
         self.assertEqual(c.alpha.beta, 2)
         self.assertEqual(c.alpha.bravo, {})
+
+    def test_supplied_default_dict(self):
+        c = self.cfg(defaults={'foo': 'bar', 'alpha': 'beta', 'bravo': None})
+        # as key
+        self.assertEqual(c['foo'], 'bar')
+        # as attribute
+        self.assertEqual(c.foo, 'bar')
+        # nested as key
+        self.assertEqual(c['alpha'], 'beta')
+        # nested as attribute
+        self.assertEqual(c.alpha, 'beta')
+        # FIXME: Configs always return things as strings.
+        self.assertEqual(c.bravo, 'None')
 
     def test_options(self):
         c = self.cfg()
@@ -167,16 +180,6 @@ class TestCaseConfig(unittest.TestCase):
         self.assertRaises(AttributeError, delattr, c, 'mykey')
         self.assertRaises(AttributeError, getattr, c, 'mykey')
         self.assertRaises(KeyError, lambda: c['mykey'])
-
-    def test_sync_not_exist(self):
-        """Config.sync() not supported for MemStorageBackend"""
-        c = self.cfg()
-        self.assertRaises(AttributeError, lambda: c.sync())
-
-    def test_close_not_exist(self):
-        """Config.sync() not supported for MemStorageBackend"""
-        c = self.cfg()
-        self.assertRaises(AttributeError, lambda: c.close())
 
     def test_batch_enable(self):
         """test_batch_enable - ensure we can enable batchmode if not set"""
@@ -538,15 +541,6 @@ class TestConfigFileBackend(unittest.TestCase):
         c = self.cfg(self.gen_new_filename())
         self.assertIsInstance(c._store, FileStorageBackend)
 
-
-    def test_sync_ok(self):
-        """Config.sync() should not throw an exception"""
-        c = self.cfg(self.gen_new_filename())
-        print c._store
-        c.sync()
-
-
-    @unittest.skip("not working")
     def test_file_persistance_overwrite_var(self):
         f = self.gen_new_filename()
         c = self.cfg(f)
@@ -579,7 +573,6 @@ class TestConfigFileBackend(unittest.TestCase):
         self.assertRaises(AttributeError, getattr, c, 'mykey')
         self.assertRaises(KeyError, lambda: c['mykey'])
 
-    # @unittest.skip("not working")
     def test_file_persistance_context(self):
         f = self.gen_new_filename()
         def create_data():
@@ -609,7 +602,6 @@ class TestConfigFileBackend(unittest.TestCase):
         self.assertRaises(AttributeError, getattr, c, 'mykey')
         self.assertRaises(KeyError, lambda: c['mykey'])
 
-    # @unittest.skip("not working")
     def test_file_persistance_with_close(self):
         f = self.gen_new_filename()
         c = self.cfg(f)
@@ -624,12 +616,6 @@ class TestConfigFileBackend(unittest.TestCase):
         self.assertEqual(c.mykey, 'myvalue')
         self.assertEqual(c.keytodelete, 'secretvalue')
         self.assertEqual(c.anotherkey, 'someothervalue')
-
-        # Close should be optional, since orphaning original c
-        # should auto close the backend
-        # c.sync()
-        c.close()
-
 
         # Now recreate the Config and check if value is taken
         # we dont want to auto create file if it does not exists.
@@ -671,25 +657,25 @@ class TestConfigFileBackend(unittest.TestCase):
         self.assertEqual(c.testkey, 'somevalue')
         self.assertEqual(c.last_modified('testkey'), input._mock_return_value)
 
-    @unittest.skip("these test since this config only returns strings")
-    def test_prompt_int_choices_ok(self):
-        pass
+    # @unittest.skip("these test since this config only returns strings")
+    # def test_prompt_int_choices_ok(self):
+    #     pass
 
-    @unittest.skip("these test since this config only returns strings")
-    def test_prompt_int_dict_default(self):
-        pass
+    # @unittest.skip("these test since this config only returns strings")
+    # def test_prompt_int_dict_default(self):
+    #     pass
 
-    @unittest.skip("these test since this config only returns strings")
-    def test_prompt_int_dict_no_default(self):
-        pass
+    # @unittest.skip("these test since this config only returns strings")
+    # def test_prompt_int_dict_no_default(self):
+    #     pass
 
-    @unittest.skip("these test since this config only returns strings")
-    def test_prompt_int_attr_no_default(self):
-        pass
+    # @unittest.skip("these test since this config only returns strings")
+    # def test_prompt_int_attr_no_default(self):
+    #     pass
 
-    @unittest.skip("these test since this config only returns strings")
-    def test_prompt_int_attr_default(self):
-        pass
+    # @unittest.skip("these test since this config only returns strings")
+    # def test_prompt_int_attr_default(self):
+    #     pass
 
     def tearDown(self):
         # Delete all files which were created

@@ -153,15 +153,6 @@ class Config(collections.MutableMapping):
         # Unable to prompt user for value
         raise KeyError("key '%s' was not found.")
 
-    def sync(self):
-        """
-        Ensures the local dictionary is synced up with the backend
-        """
-        return self._store.sync()
-
-    def close(self):
-        return self._store.close()
-
     def enable_batch(self):
         super(Config, self).__setattr__('_isbatch', True)
 

@@ -59,12 +59,6 @@ class FileStorageBackend(MemStorageBackend):
     def sync(self):
         raise RuntimeError("Must be implemented in child class.")
 
-    def close(self):
-        raise RuntimeError("Must be implemented in child class.")
-
-    def __del__(self):
-        self.close()
-
 
 class ConfigParserStorageBackend(FileStorageBackend):
     def __init__(self, filename, section='DEFAULT', *args, **kwargs):
@@ -78,6 +72,7 @@ class ConfigParserStorageBackend(FileStorageBackend):
 
     def __setitem__(self, key, value):
         self.store.set(self.section, key, value)
+        self.sync()
         return True
 
     def __getitem__(self, key):
@@ -92,6 +87,7 @@ class ConfigParserStorageBackend(FileStorageBackend):
     def __delitem__(self, key):
         if not self.store.remove_option(self.section, key):
             raise KeyError("Could not find key '%s' to delete." % key)
+        self.sync()
 
     def __iter__(self):
         for k,v in self.store.items(self.section):
@@ -104,9 +100,6 @@ class ConfigParserStorageBackend(FileStorageBackend):
         with open(self.filename, 'wb') as f:
             self.store.write(f)
 
-    def close(self):
-        self.sync()
-
 
 class XmlStorageBackend(ConfigParserStorageBackend):
     def __init__(self, filename, hashentries=True, *args, **kwargs):
@@ -114,10 +107,17 @@ class XmlStorageBackend(ConfigParserStorageBackend):
         self.version = '1.0.0'
         self.filename = filename
         self.hashentries = hashentries
-        if os.path.exists(self.filename):
+        if os.path.exists(self.filename) and os.path.getsize(self.filename) > 0:
             with open(self.filename) as f:
-                print "INFO:", "Trying to read file %s" % self.filename
-                self.store = ElementTree.parse(f)
+                try:
+                    self.store = ElementTree.parse(f)
+                except ElementTree.ParseError as e:
+                    raise RuntimeError("""FATAL: XML settings file is invalid!
+                        Please check the %s file with an xml linter to ensure
+                        the syntax is correct and that is also conforms to the
+                        formatting for a valid config file. If in doubt rename
+                        this file and run this command again to generate a
+                        clean template.""")
                 self.version = self.store.getroot().get('version')
         else:
             # Create a basic config file with no variables
@@ -182,7 +182,7 @@ class XmlStorageBackend(ConfigParserStorageBackend):
             sig = XmlStorageBackend.sign(key, str(value), type(value).__name__)
             node.set('signature', sig)
         print "SET:", ElementTree.tostring(self.store.getroot())
-        # TODO: check the performance impact of this option
+        # Save this new information to disk
         self.sync()
         return True
 
@@ -214,6 +214,8 @@ class XmlStorageBackend(ConfigParserStorageBackend):
         for var in self.store.findall('var'):
             if var.find('name').text == key:
                 self.store.getroot().remove(var)
+                # Save this update disk
+                self.sync()
                 return True
         raise KeyError("key %s was not found in config file" % key)
 
@@ -225,10 +227,6 @@ class XmlStorageBackend(ConfigParserStorageBackend):
 
     def __len__(self):
         return len(self.store.findall('var'))
-
-    def close(self):
-        """file never remains open so there is not need to explicitly close"""
-        self.sync()
 
     def sync(self):
         """Write the xml data to the file with expanded subelements"""

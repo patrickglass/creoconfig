@@ -111,9 +111,6 @@ class TestCaseXMLStorageBackend(TestCaseMemStorageBackend):
         self.filename = self.gen_new_filename()
         self.s = XmlStorageBackend(self.filename)
 
-    def test_close(self):
-        self.assertEqual(self.s.close(), None)
-
     def test_int_key(self):
         self.assertRaises(TypeError, self.s.set, 123, 'myval')
 
@@ -122,22 +119,19 @@ class TestCaseXMLStorageBackend(TestCaseMemStorageBackend):
         self.assertEqual(len(s), 0)
         s.set('mykeys', 'myvalues')
         self.assertEqual(len(s), 1)
-        s.close()
+
         s = XmlStorageBackend(self.filename)
         self.assertEqual(len(s), 1)
         self.assertEqual(s.get('mykeys'), 'myvalues')
         self.assertEqual(len(s), 1)
         del s['mykeys']
         self.assertEqual(len(s), 0)
-        s.close()
+
         s = XmlStorageBackend(self.filename)
         self.assertRaises(KeyError, s.get, 'mykeys')
         self.assertEqual(len(s), 0)
 
     def tearDown(self):
-        # Fixme: Should close config
-        self.s.close()
-        del self.s
         # Delete all files which were created
         while len(self.files):
             f = self.files.pop()
@@ -206,7 +200,6 @@ class TestCaseConfigParserStorageBackend(TestCaseXMLStorageBackend):
         s.set('mykeys2', 'myvalues')
         print("INFO: Items: %s" % str(s.store.items('DEFAULT')))
         self.assertEqual(len(s), 2)
-        s.sync()
         s = ConfigParserStorageBackend(self.filename)
         print("INFO: Items: %s" % str(s.store.items('DEFAULT')))
         self.assertEqual(len(s), 2)
@@ -215,7 +208,7 @@ class TestCaseConfigParserStorageBackend(TestCaseXMLStorageBackend):
         self.assertEqual(len(s), 2)
         del s['mykeys']
         self.assertEqual(len(s), 1)
-        s.close()
+
         s = ConfigParserStorageBackend(self.filename)
         self.assertRaises(KeyError, s.get, 'mykeys')
         self.assertEqual(s.get('mykeys2'), 'myvalues')
@@ -231,7 +224,7 @@ class TestCaseConfigParserStorageBackend(TestCaseXMLStorageBackend):
         s.set('mykeys2', 'myvalues')
         print("INFO: Items: %s" % str(s.store.items('DEFAULT')))
         self.assertEqual(len(s), 2)
-        s.close()
+
         s = ConfigParserStorageBackend(self.filename)
         print("INFO: Items: %s" % str(s.store.items('DEFAULT')))
         self.assertEqual(len(s), 2)
@@ -240,7 +233,7 @@ class TestCaseConfigParserStorageBackend(TestCaseXMLStorageBackend):
         self.assertEqual(len(s), 2)
         del s['mykeys']
         self.assertEqual(len(s), 1)
-        s.close()
+
         s = ConfigParserStorageBackend(self.filename)
         self.assertRaises(KeyError, s.get, 'mykeys')
         self.assertEqual(s.get('mykeys2'), 'myvalues')
