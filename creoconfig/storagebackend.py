@@ -125,8 +125,6 @@ class XmlStorageBackend(ConfigParserStorageBackend):
             config.set('version', self.version)
             self.store = ElementTree.ElementTree(config)
 
-        print "OPEN:", ElementTree.tostring(self.store.getroot())
-
         if self.version != '1.0.0':
             print "XML file is not a valid configuration version."
 
@@ -144,7 +142,6 @@ class XmlStorageBackend(ConfigParserStorageBackend):
     @staticmethod
     def validate(signature, *args):
         gensig = XmlStorageBackend.sign(*args)
-        print("INFO: Comparing Signatures: %s =? %s" % (signature, gensig))
         return XmlStorageBackend._compare_digest(bytes(gensig), bytes(signature))
 
     @staticmethod
@@ -181,14 +178,12 @@ class XmlStorageBackend(ConfigParserStorageBackend):
             node.set('timestamp', str(time.time()))
             sig = XmlStorageBackend.sign(key, str(value), type(value).__name__)
             node.set('signature', sig)
-        print "SET:", ElementTree.tostring(self.store.getroot())
         # Save this new information to disk
         self.sync()
         return True
 
     def __getitem__(self, key):
         """TODO: Still need to use 'type' attr to cast value"""
-        print "GET:", ElementTree.tostring(self.store.getroot())
         for var in self.store.iter('var'):
             if var.find('name').text.strip() == key:
                 return var.find('value').text.strip() or var.find('default').text.strip()
@@ -200,7 +195,6 @@ class XmlStorageBackend(ConfigParserStorageBackend):
 
         raises a keyerror if key does not exist.
         """
-        print "GET_MODIFIED:", ElementTree.tostring(self.store.getroot())
         for var in self.store.iter('var'):
             if var.find('name').text.strip() == key:
                 ts = var.get('timestamp')
@@ -230,7 +224,6 @@ class XmlStorageBackend(ConfigParserStorageBackend):
 
     def sync(self):
         """Write the xml data to the file with expanded subelements"""
-        print "SYNC:", ElementTree.tostring(self.store.getroot())
         with open(self.filename, 'w+') as f:
             f.write(self.prettify(self.store.getroot()))
             # self.store.write(f, method='html')
