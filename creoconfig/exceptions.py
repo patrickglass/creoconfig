@@ -7,9 +7,11 @@ class ConfigException(Exception):
     """Base class for all application generated exceptions"""
     pass
 
+
 class IllegalArgumentError(ConfigException):
     """Thrown when the arguments passed in need to be fixed."""
     pass
+
 
 class BatchModeUnableToPrompt(ConfigException):
     """
@@ -19,9 +21,11 @@ class BatchModeUnableToPrompt(ConfigException):
     """
     pass
 
+
 class TooManyRetries(ConfigException):
     """User failed to enter valid options to many times"""
     pass
+
 
 class SignatureError(ConfigException):
     """Config entry has been modified external to this config application"""

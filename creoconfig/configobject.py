@@ -9,14 +9,10 @@ try:
     import readline
 except ImportError:
     pass
-import re
-import collections
 from exceptions import (
-    BatchModeUnableToPrompt,
     TooManyRetries,
     IllegalArgumentError
 )
-from storagebackend import MemStorageBackend
 
 
 class ConfigObject(object):
@@ -40,21 +36,28 @@ class ConfigObject(object):
         # Ensure that default value is of the correct type
         if self.default:
             if not isinstance(self.default, self.returntype):
-                raise IllegalArgumentError("'default' must be the same base class as 'type': %s != %s" % (self.default, self.returntype))
+                raise IllegalArgumentError(
+                    "'default' must be the same base class as 'type': "
+                    "%s != %s" % (self.default, self.returntype))
 
         # Choices should always be stores as string type
         if choices:
             if isinstance(choices, (str, unicode)):
-                raise IllegalArgumentError("'choices' must be iterable which is not a string.")
+                raise IllegalArgumentError(
+                    "'choices' must be iterable which is not a string.")
             for x in choices:
                 if not isinstance(x, self.returntype):
-                    raise IllegalArgumentError("'choices' must be iterable and the same class as 'type'. Item type mismatch for: %s != %s" % (x, self.returntype))
+                    raise IllegalArgumentError(
+                        "'choices' must be iterable and the same class as "
+                        "'type'. Item type mismatch for: "
+                        "%s != %s" % (x, self.returntype))
 
         # map choices to string items since all comparasons are string based.
         self.choices = map(str, choices)
 
     def __repr__(self):
-        return "%s %s: %s (%s)" % (self.name, self.returntype, self.choices, self.default)
+        return "%s %s: %s (%s)" % (self.name, self.returntype,
+                                   self.choices, self.default)
 
     def prompt(self):
 
@@ -72,7 +75,8 @@ class ConfigObject(object):
             val = raw_input(self.msg)
 
             if self.retries < 0:
-                    raise TooManyRetries("You can only select an option from the specified list! Exiting...")
+                    raise TooManyRetries("You can only select an option "
+                                         "from the specified list! Exiting...")
 
             self.retries -= 1
 
@@ -99,5 +103,6 @@ class ConfigObject(object):
             try:
                 return self.returntype(val)
             except ValueError:
-                print("Could not interpret your answer '%s' as %s. Please try again!" % (val, self.returntype))
+                print("Could not interpret your answer '%s' as %s. Please "
+                      "try again!" % (val, self.returntype))
                 continue

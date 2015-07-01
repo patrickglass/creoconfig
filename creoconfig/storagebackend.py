@@ -5,7 +5,7 @@ import os
 import time
 import hmac
 import hashlib
-import shelve
+import logging
 import collections
 import ConfigParser
 try:
@@ -13,6 +13,10 @@ try:
 except ImportError:
     from xml.etree import ElementTree
 from xml.dom import minidom
+
+
+logger = logging.getLogger(__name__)
+
 
 class MemStorageBackend(collections.MutableMapping):
     def __init__(self, *args, **kwargs):
@@ -90,7 +94,7 @@ class ConfigParserStorageBackend(FileStorageBackend):
         self.sync()
 
     def __iter__(self):
-        for k,v in self.store.items(self.section):
+        for k, v in self.store.items(self.section):
             yield k
 
     def __len__(self):
@@ -111,13 +115,13 @@ class XmlStorageBackend(ConfigParserStorageBackend):
             with open(self.filename) as f:
                 try:
                     self.store = ElementTree.parse(f)
-                except ElementTree.ParseError as e:
+                except ElementTree.ParseError:
                     raise RuntimeError("""FATAL: XML settings file is invalid!
-                        Please check the %s file with an xml linter to ensure
+                        Please check the file '%s' with an xml linter to ensure
                         the syntax is correct and that is also conforms to the
                         formatting for a valid config file. If in doubt rename
                         this file and run this command again to generate a
-                        clean template.""")
+                        clean template.""" % self.filename)
                 self.version = self.store.getroot().get('version')
         else:
             # Create a basic config file with no variables
@@ -140,11 +144,6 @@ class XmlStorageBackend(ConfigParserStorageBackend):
         return sig.digest().encode("base64").rstrip('\n')
 
     @staticmethod
-    def validate(signature, *args):
-        gensig = XmlStorageBackend.sign(*args)
-        return XmlStorageBackend._compare_digest(bytes(gensig), bytes(signature))
-
-    @staticmethod
     def _compare_digest(x, y):
         return x == y
         if not (isinstance(x, bytes) and isinstance(y, bytes)):
@@ -155,6 +154,12 @@ class XmlStorageBackend(ConfigParserStorageBackend):
         for a, b in zip(x, y):
             result |= a ^ b
         return (result == 0)
+
+    @staticmethod
+    def validate(signature, *args):
+        gensig = XmlStorageBackend.sign(*args)
+        return XmlStorageBackend._compare_digest(
+            bytes(gensig), bytes(signature))
 
     def __setitem__(self, key, value):
         # If the value exists just replace it otherwise create new
@@ -176,7 +181,7 @@ class XmlStorageBackend(ConfigParserStorageBackend):
         # Check if we should add the hash signature
         if self.hashentries:
             node.set('timestamp', str(time.time()))
-            sig = XmlStorageBackend.sign(key, str(value), type(value).__name__)
+            sig = self.sign(key, str(value), type(value).__name__)
             node.set('signature', sig)
         # Save this new information to disk
         self.sync()
@@ -197,9 +202,21 @@ class XmlStorageBackend(ConfigParserStorageBackend):
         """
         for var in self.store.iter('var'):
             if var.find('name').text.strip() == key:
-                ts = var.get('timestamp')
-                if ts:
-                    return float(ts)
+                if self.hashentries:
+                    ts = var.get('timestamp')
+                    # Need to detect of config was modified outside of this
+                    # program. Check the signature hash to ensure it is the
+                    # same
+                    val = var.get('value')
+                    typ = var.get('type')
+                    sig = var.get('signature')
+                    valid = self.validate(sig, key, val, typ)
+                    if valid:
+                        logger.debug("Signature for key '%s' is valid!" % key)
+                        return float(ts)
+                    else:
+                        logger.warn("Key '%s' signature mismatch. Setting last modified time to NOW()" % key)
+                        return time.time()
                 else:
                     return None
         raise KeyError("name %s was not found in xml file!" % key)

@@ -5,10 +5,14 @@ Allows the central control and management of applications via
 a centralized configuration management system.
 """
 import re
+import logging
 import collections
 import configobject
 from exceptions import BatchModeUnableToPrompt
 from storagebackend import MemStorageBackend, XmlStorageBackend
+
+
+logger = logging.getLogger(__name__)
 
 
 # This is a global environment settings attribute dictionary
@@ -105,27 +109,27 @@ class Config(collections.MutableMapping):
         return self._store.last_modified(key)
 
     def __getitem__(self, key):
-        # print("INFO: Config.__getitem__(%s)" % key)
+        logger.debug("Config.__getitem__(%s)" % key)
         return self.get(key)
 
     def __getattr__(self, key):
         """__get_attr__ will raise the correct exception if key is not found"""
-        # print("INFO: Config.__getattr__(%s)" % key)
+        logger.debug("Config.__getattr__(%s)" % key)
         try:
             return self.get(key)
         except KeyError, msg:
             raise AttributeError(msg)
 
     def _set(self, key, value):
-        # print("INFO: Config.set(%s, %s)" % (key, value))
+        logger.debug("Config.set(%s, %s)" % (key, value))
         return self._store.set(key, str(value))
 
     def __setitem__(self, key, value):
-        # print("INFO: Config.__setitem__(%s, %s)" % (key, value))
+        logger.debug("Config.__setitem__(%s, %s)" % (key, value))
         return self._set(key, value)
 
     def __setattr__(self, key, value):
-        # print("INFO: Config.__setattr__(%s, %s)" % (key, value))
+        logger.debug("Config.__setattr__(%s, %s)" % (key, value))
         return self._set(key, value)
 
     def __iter__(self):
@@ -169,7 +173,9 @@ class Config(collections.MutableMapping):
         for k in self._available_keywords:
             if k.name not in self._store:
                 if self._isbatch:
-                    raise BatchModeUnableToPrompt("%s not found. Please exit batchmode to start wizard or set this variable manually." % k.name)
+                    raise BatchModeUnableToPrompt(
+                        "%s not found. Please exit batchmode to start wizard "
+                        "or set this variable manually." % k.name)
                 val = k.prompt()
                 self._set(k.name, val)
         return True
